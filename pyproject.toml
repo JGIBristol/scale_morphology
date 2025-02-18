@@ -22,6 +22,8 @@ dependencies = [
 
 [project.scripts]
 efa = "scale_morphology.scripts.efa:main"
+autoencoder = "scale_morphology.scripts.autoencoder:main"
+vae = "scale_morphology.scripts.vae:main"
 
 [build-system]
 requires = ["hatchling"]
