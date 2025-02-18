@@ -1,7 +1,7 @@
 [project]
-name = "fish-test"
+name = "scale_morphology"
 version = "0.1.0"
-description = "Testing fish stuff"
+description = "Zebrafish scale shape analysis"
 readme = "README.md"
 authors = [
     { name = "Richard Lane", email = "richard.lane@bristol.ac.uk" }
@@ -20,9 +20,12 @@ dependencies = [
     "tqdm>=4.67.1",
 ]
 
+[tool.hatch.envs.default]
+dev-mode = true
+
 [build-system]
 requires = ["hatchling"]
 build-backend = "hatchling.build"
 
 [tool.hatch.build.targets.wheel]
-packages = ["src/fish_test"]
+packages = ["src/scale_analysis"]
