@@ -9,7 +9,7 @@ The environment here is managed with `uv`, a python package manager.
 The only dependency that you need to install to run this project is `uv` itself.
 
 > [!TIP]
-> download `uv` from [the instructions here](https://docs.astral.sh/uv/#installation).
+> Download `uv` from [here](https://docs.astral.sh/uv/#installation).
 
 ## Scripts
 I'm envisioning three scripts...
