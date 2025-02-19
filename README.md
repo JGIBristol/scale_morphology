@@ -3,8 +3,9 @@ Shape analysis of Zebrafish scales
 
 ## Quick Start
 1. Install `uv`
-2. Change the right things in the config file `config.yml`
-3. Run the scripts:
+2. Put a directory containing binary images in the `data/` directory
+3. Change the right things in the config file `config.yml`
+4. Run the scripts:
     1. `uv run efa`
     2. `uv run autoencoder`
     3. `uv run vae`
