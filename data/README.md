@@ -12,6 +12,6 @@ src/
 ```
 
 and 
-```yaml
+```yaml filename="config.yml"
 binary_img_dir: "binary_imgs/"
 ```

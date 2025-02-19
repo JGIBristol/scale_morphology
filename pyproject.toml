@@ -12,6 +12,7 @@ dependencies = [
     "numpy>=2.2.2",
     "plotly>=6.0.0",
     "pyefd>=1.6.0",
+    "pyyaml>=6.0.2",
     "ruff>=0.9.5",
     "scikit-image>=0.25.1",
     "scikit-learn>=1.6.1",
