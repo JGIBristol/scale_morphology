@@ -19,7 +19,11 @@ dependencies = [
     "torch>=2.6.0",
     "torchvision>=0.21.0",
     "tqdm>=4.67.1",
+    "pytest>=8.0.0",
 ]
+
+[tool.pytest.ini_options]
+testpaths = ["src/scale_morphology/test"]
 
 [project.scripts]
 efa = "scale_morphology.scripts.efa:main"
