@@ -4,6 +4,7 @@ Utilities for reading data, files, etc.
 """
 
 import yaml
+import imageio
 import pathlib
 
 
@@ -38,3 +39,11 @@ def data_dir() -> pathlib.Path:
 
     """
     return _root() / "data" / config()["binary_img_dir"]
+
+
+def segmentations() -> list[pathlib.Path]:
+    """
+    Get all the segmentations in the data directory
+
+    """
+    return [imageio.imread(path) for path in data_dir().glob("*.tif")]

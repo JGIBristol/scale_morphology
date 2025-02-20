@@ -640,6 +640,7 @@ name = "scale-morphology"
 version = "0.1.0"
 source = { editable = "." }
 dependencies = [
+    { name = "imageio" },
     { name = "matplotlib" },
     { name = "numpy" },
     { name = "plotly" },
@@ -656,6 +657,7 @@ dependencies = [
 
 [package.metadata]
 requires-dist = [
+    { name = "imageio", specifier = ">=2.37.0" },
     { name = "matplotlib", specifier = ">=3.10.0" },
     { name = "numpy", specifier = ">=2.2.2" },
     { name = "plotly", specifier = ">=6.0.0" },
