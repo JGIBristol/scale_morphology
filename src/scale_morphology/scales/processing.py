@@ -6,6 +6,10 @@ Image processing
 import numpy as np
 
 from scipy import ndimage
+from skimage.segmentation import find_boundaries
+
+
+class BadImgError(Exception): ...
 
 
 def has_holes(binary_img: np.ndarray) -> bool:
@@ -72,3 +76,28 @@ def fill_background(binary_img: np.typing.NDArray) -> np.typing.NDArray:
             copy[labels == k] = 255
 
     return copy
+
+
+def find_edge_points(binary_img: np.ndarray) -> np.ndarray:
+    """
+    Find the edges of an object in a binary image
+
+    :param binary_img: Binary image, with values 0 or 255 and dtype uint8
+    :return: The edge points, as an Nx2 shape array
+
+    """
+    assert np.isdtype(
+        binary_img.dtype, np.uint8
+    ), f"Input must be uint8: {binary_img.dtype=}"
+
+    assert set(np.unique(binary_img)) <= {
+        0,
+        255,
+    }, f"Binary image must be 0 or 255: {np.unique(binary_img)}"
+
+    if has_holes(binary_img):
+        raise BadImgError("Image has holes")
+
+    edge_points = find_boundaries(binary_img, mode="outer", connectivity=2)
+
+    return np.argwhere(edge_points)

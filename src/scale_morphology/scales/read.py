@@ -7,6 +7,8 @@ import yaml
 import imageio
 import pathlib
 
+import numpy as np
+
 
 def _thisfile() -> pathlib.Path:
     """
@@ -41,7 +43,7 @@ def data_dir() -> pathlib.Path:
     return _root() / "data" / config()["binary_img_dir"]
 
 
-def segmentations() -> list[pathlib.Path]:
+def segmentations() -> list[np.ndarray]:
     """
     Get all the segmentations in the data directory
 

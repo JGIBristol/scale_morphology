@@ -57,3 +57,23 @@ def test_fill_bkg(img_with_holes: np.ndarray):
             dtype=np.uint8,
         )
     )
+
+
+def test_find_edge_points():
+    """
+    Check we can find the edges of a binary image
+
+    """
+    img = 255 * np.array(
+        [
+            [0, 0, 0, 0, 0],
+            [0, 1, 1, 1, 0],
+            [0, 1, 1, 1, 0],
+            [0, 1, 1, 1, 0],
+            [0, 0, 0, 0, 0],
+        ],
+        dtype=np.uint8,
+    )
+    edges = np.argwhere(img == 0)
+
+    assert np.all(np.sort(processing.find_edge_points(img).flat) == np.sort(edges.flat))
