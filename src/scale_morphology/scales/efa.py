@@ -58,6 +58,8 @@ def _rotate(coeffs: np.ndarray) -> np.ndarray:
     )
 
     rotated = np.zeros_like(coeffs)
+
+    # Align all harmonics with the major axis
     for i in range(coeffs.shape[0]):
         a, b, c, d = coeffs[i]
         rotated[i] = np.dot(
@@ -70,6 +72,7 @@ def _rotate(coeffs: np.ndarray) -> np.ndarray:
             ),
         ).flatten()
 
+    # Align the major axis with the x-axis
     psi = np.arctan2(rotated[0, 2], rotated[0, 0])
     matrix = np.array(
         [
@@ -77,7 +80,6 @@ def _rotate(coeffs: np.ndarray) -> np.ndarray:
             [-np.sin(psi), np.cos(psi)],
         ]
     )
-
     for i in range(coeffs.shape[0]):
         rotated[i] = matrix.dot(
             np.array(
