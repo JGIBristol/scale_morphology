@@ -76,7 +76,7 @@ def test_point_around_segmentation():
         ],
         dtype=np.uint8,
     )
-    x, y = processing.even_edge_points(square, 10)
+    x, y = processing.points_around_edge(square, 10)
 
     expected_x = [5.5, 4.5, 3.5, 2.5, 1.5, 0.5, 1.5, 2.5, 3.5, 4.5, 5.5]
     expected_y = [3.0, 2.0, 1.0, 1.0, 2.0, 3.0, 4.0, 5.0, 5.0, 4.0, 3.0]

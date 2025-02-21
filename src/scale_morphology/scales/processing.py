@@ -1,5 +1,5 @@
 """
-Image processing
+Image processing and manipulation
 
 """
 
@@ -79,7 +79,7 @@ def fill_background(binary_img: np.typing.NDArray) -> np.typing.NDArray:
     return copy
 
 
-def even_edge_points(
+def points_around_edge(
     binary_img: np.ndarray, n_points: int
 ) -> tuple[np.ndarray, np.ndarray]:
     """
