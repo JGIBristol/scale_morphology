@@ -59,21 +59,27 @@ def test_fill_bkg(img_with_holes: np.ndarray):
     )
 
 
-def test_find_edge_points():
+def test_point_around_segmentation():
     """
-    Check we can find the edges of a binary image
+    Check if we can get the expected points around a diamond shape
 
     """
-    img = 255 * np.array(
+    square = 255 * np.array(
         [
-            [0, 0, 0, 0, 0],
-            [0, 1, 1, 1, 0],
-            [0, 1, 1, 1, 0],
-            [0, 1, 1, 1, 0],
-            [0, 0, 0, 0, 0],
+            [0, 0, 0, 0, 0, 0, 0],
+            [0, 0, 0, 1, 0, 0, 0],
+            [0, 0, 1, 1, 1, 0, 0],
+            [0, 1, 1, 1, 1, 1, 0],
+            [0, 0, 1, 1, 1, 0, 0],
+            [0, 0, 0, 1, 0, 0, 0],
+            [0, 0, 0, 0, 0, 0, 0],
         ],
         dtype=np.uint8,
     )
-    edges = np.argwhere(img == 0)
+    x, y = processing.even_edge_points(square, 10)
 
-    assert np.all(np.sort(processing.find_edge_points(img).flat) == np.sort(edges.flat))
+    expected_x = [5.5, 4.5, 3.5, 2.5, 1.5, 0.5, 1.5, 2.5, 3.5, 4.5, 5.5]
+    expected_y = [3.0, 2.0, 1.0, 1.0, 2.0, 3.0, 4.0, 5.0, 5.0, 4.0, 3.0]
+
+    assert np.allclose(x, expected_x)
+    assert np.allclose(y, expected_y)

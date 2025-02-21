@@ -95,7 +95,7 @@ def even_edge_points(
     contour_points = find_contours(binary_img, fully_connected="high")[0]
 
     shape = shapely.LinearRing(contour_points)
-    distances = np.linspace(0, 1, n_points)
+    distances = np.linspace(0, 1, n_points + 1)
     pts = shapely.line_interpolate_point(shape, distances, normalized=True)
 
     x = [p.x for p in pts]
