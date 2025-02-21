@@ -5,8 +5,9 @@ Image processing
 
 import numpy as np
 
+import shapely
 from scipy import ndimage
-from skimage.segmentation import find_boundaries
+from skimage.measure import find_contours
 
 
 class BadImgError(Exception): ...
@@ -78,26 +79,26 @@ def fill_background(binary_img: np.typing.NDArray) -> np.typing.NDArray:
     return copy
 
 
-def find_edge_points(binary_img: np.ndarray) -> np.ndarray:
+def even_edge_points(
+    binary_img: np.ndarray, n_points: int
+) -> tuple[np.ndarray, np.ndarray]:
     """
-    Find the edges of an object in a binary image
+    Get equally spaced points along the boundary of a binary image.
 
-    :param binary_img: Binary image, with values 0 or 255 and dtype uint8
-    :return: The edge points, as an Nx2 shape array
+    This performs a slight smoothing, as the contour points are on the edges of each pixel
+    rather than on their corners.
 
+    :param binary_img: Binary image.
+    :param n_points: Number of points to generate.
+    :return: x, y coordinates of the points.
     """
-    assert np.isdtype(
-        binary_img.dtype, np.uint8
-    ), f"Input must be uint8: {binary_img.dtype=}"
+    contour_points = find_contours(binary_img, fully_connected="high")[0]
 
-    assert set(np.unique(binary_img)) <= {
-        0,
-        255,
-    }, f"Binary image must be 0 or 255: {np.unique(binary_img)}"
+    shape = shapely.LinearRing(contour_points)
+    distances = np.linspace(0, 1, n_points)
+    pts = shapely.line_interpolate_point(shape, distances, normalized=True)
 
-    if has_holes(binary_img):
-        raise BadImgError("Image has holes")
+    x = [p.x for p in pts]
+    y = [p.y for p in pts]
 
-    edge_points = find_boundaries(binary_img, mode="outer", connectivity=2)
-
-    return np.argwhere(edge_points)
+    return np.array(x), np.array(y)
