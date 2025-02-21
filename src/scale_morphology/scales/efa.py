@@ -50,48 +50,6 @@ def _rotate(coeffs: np.ndarray) -> np.ndarray:
     is horizontal
 
     """
-    assert coeffs.shape[1] == 4
-
-    # Get first harmonic coefficients
-    a, b, c, d = coeffs[0]
-
-    # Calculate rotation angle
-    numerator = 2 * (a * b + c * d)
-    denominator = a * a - b * b + c * c - d * d
-    theta = 0.5 * np.arctan2(numerator, denominator)
-
-    # Create rotation matrix
-    cos_t = np.cos(theta)
-    sin_t = np.sin(theta)
-
-    # Rotated coefficients
-    rotated = np.zeros_like(coeffs)
-    for n in range(len(coeffs)):
-        a, b, c, d = coeffs[n]
-        rotated[n, 0] = a * cos_t + b * sin_t
-        rotated[n, 1] = -a * sin_t + b * cos_t
-
-        rotated[n, 2] = c * cos_t + d * sin_t
-        rotated[n, 3] = -c * sin_t + d * cos_t
-
-    return rotated
-
-
-def _first_principal_axis(coeffs: np.ndarray) -> np.ndarray:
-    """
-    Calculate the principal axis of the ellipse defined by the parametric form:
-
-    """
-    assert coeffs.shape[1] == 4
-
-    a, b, c, d = coeffs[0]
-
-    # Find the eigenvalues of the covariance matrix
-    # This tells us the axes along which x and y vary most with each other
-    # i.e. the principal axes
-    cov_matrix = np.array([[a**2 + b**2, a * c + b * d], [a * c + b * d, c**2 + d**2]])
-    eigenvalues, eigenvectors = np.linalg.eig(cov_matrix)
-    return eigenvectors[:, np.argmax(eigenvalues)]
 
 
 def coefficients(binary_img: np.ndarray, n_points: int, order: int) -> None:
