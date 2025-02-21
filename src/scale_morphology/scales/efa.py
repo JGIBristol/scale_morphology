@@ -94,3 +94,28 @@ def coefficients(binary_img: np.ndarray, n_points: int, order: int) -> None:
     coeffs = pyefd.elliptic_fourier_descriptors(x, y, order=order, normalize=False)
 
     return _rotate(coeffs)
+
+
+def coeffs2points(coeffs, locus, *, n_pts=300):
+    """
+    Get the x, y coordinates of the EFD points given the coefficients
+    in the expansion
+
+    """
+    t = np.linspace(0, 1.0, n_pts)
+    harmonics = np.arange(1, coeffs.shape[0] + 1)
+
+    # Calculate all trig terms at once (num_harmonics x num_points)
+    angles = 2 * np.pi * harmonics[:, None] * t[None, :]
+    cos_terms = np.cos(angles)
+    sin_terms = np.sin(angles)
+
+    # Calculate x and y coordinates using matrix multiplication
+    xt = locus[0] + np.sum(
+        coeffs[:, 0:1] * cos_terms + coeffs[:, 1:2] * sin_terms, axis=0
+    )
+    yt = locus[1] + np.sum(
+        coeffs[:, 2:3] * cos_terms + coeffs[:, 3:4] * sin_terms, axis=0
+    )
+
+    return xt, yt
