@@ -35,6 +35,9 @@ def test_rotation():
     Check the rotation of coefficients works
 
     """
-    coeffs = np.array([[1, -0.5, 1, 0.5], [0.5, 0.6, 0.7, 0.8]])
+    coeffs = np.array([[1, -0.5, 2, 0.5], [0.5, 0.6, 0.7, 0.8]])
 
-    assert np.allclose(pyefd.normalize_efd(coeffs.copy(), size_invariant=False), coeffs)
+    assert np.allclose(
+        pyefd.normalize_efd(coeffs.copy(), size_invariant=False),
+        efa._rotate(coeffs),
+    )

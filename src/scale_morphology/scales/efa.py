@@ -50,6 +50,45 @@ def _rotate(coeffs: np.ndarray) -> np.ndarray:
     is horizontal
 
     """
+    a, b, c, d = coeffs[0]
+
+    theta = 0.5 * np.arctan2(
+        2 * (a * b + c * d),
+        (a**2 - b**2 + c**2 - d**2),
+    )
+
+    rotated = np.zeros_like(coeffs)
+    for i in range(coeffs.shape[0]):
+        a, b, c, d = coeffs[i]
+        rotated[i] = np.dot(
+            np.array([[a, b], [c, d]]),
+            np.array(
+                [
+                    [np.cos((i + 1) * theta), -np.sin((i + 1) * theta)],
+                    [np.sin((i + 1) * theta), np.cos((i + 1) * theta)],
+                ]
+            ),
+        ).flatten()
+
+    psi = np.arctan2(rotated[0, 2], rotated[0, 0])
+    matrix = np.array(
+        [
+            [np.cos(psi), np.sin(psi)],
+            [-np.sin(psi), np.cos(psi)],
+        ]
+    )
+
+    for i in range(coeffs.shape[0]):
+        rotated[i] = matrix.dot(
+            np.array(
+                [
+                    [rotated[i, 0], rotated[i, 1]],
+                    [rotated[i, 2], rotated[i, 3]],
+                ]
+            )
+        ).flatten()
+
+    return rotated
 
 
 def coefficients(binary_img: np.ndarray, n_points: int, order: int) -> None:
