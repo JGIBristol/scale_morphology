@@ -28,7 +28,7 @@ dependencies = [
 testpaths = ["src/scale_morphology/test"]
 
 [project.scripts]
-efa = "scale_morphology.scripts.efa:main"
+efa = "scale_morphology.scripts.efa:cli"
 autoencoder = "scale_morphology.scripts.autoencoder:main"
 vae = "scale_morphology.scripts.vae:main"
 

@@ -5,7 +5,7 @@ Elliptical Fourier Analysis (EFA) of scale shapes
 
 import argparse
 
-from ..scales import read, processing
+from ..scales import read, processing, efa
 
 
 def main(*, n_edge_points: int, progress: bool) -> None:
@@ -18,15 +18,18 @@ def main(*, n_edge_points: int, progress: bool) -> None:
     segmented_scales = read.segmentations()
 
     edge_points = [
-        processing.points_around_edge(scale, n_edge_points)
-        for scale in segmented_scales
+        efa.points_around_edge(scale, n_edge_points) for scale in segmented_scales
     ]
 
     # Perform EFA on the points
+
     # Store these in an array
 
 
-if __name__ == main():
+def cli():
+    """
+    CLI for this script
+    """
     parser = argparse.ArgumentParser(description="Perform EFA on scale shapes")
 
     parser.add_argument(
@@ -39,3 +42,7 @@ if __name__ == main():
     parser.add_argument("--progress", action="store_true", help="Show progress bars")
 
     main(**vars(parser.parse_args()))
+
+
+if __name__ == "__main__":
+    cli()
