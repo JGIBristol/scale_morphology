@@ -66,34 +66,31 @@ def _rotate(coeffs: np.ndarray) -> np.ndarray:
     indices = np.arange(1, coeffs.shape[0] + 1)
     cos = np.cos(indices * theta)
     sin = np.sin(indices * theta)
-    rotation_matrices = np.stack(
+    theta_rotations = np.stack(
         [
             np.stack([cos, -sin], axis=1),
             np.stack([sin, cos], axis=1),
         ],
         axis=1,
     )
-    rotated = np.matmul(coeff_matrices, rotation_matrices).reshape(-1, 4)
+    # This is now an Nx2x2 array of rotated coefficients
+    rotated = np.matmul(coeff_matrices, theta_rotations)
 
-    # Align the major axis with the x-axis
-    psi = np.arctan2(rotated[0, 2], rotated[0, 0])
-    matrix = np.array(
+    # Step 2: align the major axis with the x-axis
+    # We just repeat the above, but now it's easier because the
+    # rotation matrix is the same for all harmonics
+    # psi is the angle defined by the c and a coeffs
+    psi = np.arctan2(rotated[0, 1, 0], rotated[0, 0, 0])
+    psi_rotation = np.array(
         [
             [np.cos(psi), np.sin(psi)],
             [-np.sin(psi), np.cos(psi)],
         ]
     )
-    for i in range(coeffs.shape[0]):
-        rotated[i] = matrix.dot(
-            np.array(
-                [
-                    [rotated[i, 0], rotated[i, 1]],
-                    [rotated[i, 2], rotated[i, 3]],
-                ]
-            )
-        ).flatten()
+    rotated = np.matmul(psi_rotation, rotated.reshape(-1, 2, 2))
 
-    return rotated
+    # Put the coefficients back into the original shape
+    return rotated.reshape(-1, 4)
 
 
 def coefficients(binary_img: np.ndarray, n_points: int, order: int) -> None:
