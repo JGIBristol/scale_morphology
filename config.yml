@@ -1,1 +1,7 @@
+# The location of the raw (RGB) TIFF segmentations
+# I just copied these from OneDrive
 binary_img_dir: "binary_imgs/"
+
+# This directory will be created if needed
+# Used for storing the greyscale images
+greyscale_cache_dir: "greyscale_cache/"
