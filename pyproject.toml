@@ -22,6 +22,7 @@ dependencies = [
     "pytest>=8.0.0",
     "imageio>=2.37.0",
     "shapely>=2.0.7",
+    "black>=25.1.0",
 ]
 
 [tool.pytest.ini_options]

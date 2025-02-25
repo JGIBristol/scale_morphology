@@ -57,3 +57,10 @@ def segmentations(*, progress: bool = False) -> np.ndarray:
         paths = tqdm(paths, desc="Reading segmentations")
     return [imageio.imread(path) for path in paths]
 
+
+def rgb2uint8(images: list[np.ndarray]) -> list[np.ndarray]:
+    """
+    Convert a list of RGB images to uint8 greyscale
+
+    """
+    return [np.mean(image, axis=2).astype(np.uint8) for image in images]

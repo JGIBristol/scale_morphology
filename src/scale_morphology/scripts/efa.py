@@ -17,6 +17,7 @@ def main(*, n_edge_points: int, progress: bool) -> None:
     """
     segmented_scales = read.segmentations(progress=progress)
     import numpy as np
+
     print(np.unique(segmented_scales[0]))
 
     edge_points = [
