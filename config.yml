@@ -3,5 +3,5 @@
 binary_img_dir: "binary_imgs/"
 
 # This directory will be created if needed
-# Used for storing the greyscale images
-greyscale_cache_dir: "greyscale_cache/"
+# Used for storing pre-processed (greyscale) segmentations
+processed_img_dir: "greyscale_cache/"

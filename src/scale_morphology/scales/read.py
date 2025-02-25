@@ -35,23 +35,47 @@ def config() -> dict:
     with open(_root() / "config.yml") as file:
         return yaml.safe_load(file)
 
-
-def data_dir() -> pathlib.Path:
+def _data_dir() -> pathlib.Path:
     """
-    Get the directory holding the data
+    The directory holding data
 
     """
-    return _root() / "data" / config()["binary_img_dir"]
+    return _root() / "data"
 
+def raw_data_dir() -> pathlib.Path:
+    """
+    Get the directory holding the raw image data
+
+    """
+    return _data_dir() / config()["binary_img_dir"]
+
+
+def segmentation_dir() -> pathlib.Path:
+    """
+    The directory holding the pre-processed segmentations
+
+    """
+    return _data_dir() / config()["processed_img_dir"]
+
+
+def _create_greyscale_tiffs(*, progress=True):
+    """
+    The raw segmentations on OneDrive will be RGB images,
+    in which case we want to standardise them- save them all as
+    greyscale, 8 bit unsigned tiffs
+
+    """
 
 def segmentations(*, progress: bool = False) -> np.ndarray:
     """
     Get all the segmentations in the data directory
 
     """
-    paths = list(data_dir().glob("*.tif"))
+    paths = list(raw_data_dir().glob("*.tif"))
+
+    # If they greyscale images don't exist, create them
     if not paths:
-        raise FileNotFoundError(f"No data found in {data_dir()}")
+        raise FileNotFoundError(f"No data found in {raw_data_dir()}")
 
     if progress:
         paths = tqdm(paths, desc="Reading segmentations")
