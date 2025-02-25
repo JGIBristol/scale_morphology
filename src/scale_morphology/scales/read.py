@@ -8,6 +8,7 @@ import imageio
 import pathlib
 
 import numpy as np
+from tqdm import tqdm
 
 
 def _thisfile() -> pathlib.Path:
@@ -43,7 +44,7 @@ def data_dir() -> pathlib.Path:
     return _root() / "data" / config()["binary_img_dir"]
 
 
-def segmentations() -> list[np.ndarray]:
+def segmentations(*, progress: bool = False) -> np.ndarray:
     """
     Get all the segmentations in the data directory
 
@@ -52,8 +53,7 @@ def segmentations() -> list[np.ndarray]:
     if not paths:
         raise FileNotFoundError(f"No data found in {data_dir()}")
 
-    segmentations = [imageio.imread(path) for path in paths]
-
-    # We expect to have to convert these from RGB to greyscale
-    return [np.mean(segmentation, axis=2) for segmentation in segmentations]
+    if progress:
+        paths = tqdm(paths, desc="Reading segmentations")
+    return [imageio.imread(path) for path in paths]
 
