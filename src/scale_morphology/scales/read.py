@@ -48,4 +48,12 @@ def segmentations() -> list[np.ndarray]:
     Get all the segmentations in the data directory
 
     """
-    return [imageio.imread(path) for path in data_dir().glob("*.tif")]
+    paths = list(data_dir().glob("*.tif"))
+    if not paths:
+        raise FileNotFoundError(f"No data found in {data_dir()}")
+
+    segmentations = [imageio.imread(path) for path in paths]
+
+    # We expect to have to convert these from RGB to greyscale
+    return [np.mean(segmentation, axis=2) for segmentation in segmentations]
+

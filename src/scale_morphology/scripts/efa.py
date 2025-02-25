@@ -16,6 +16,8 @@ def main(*, n_edge_points: int, progress: bool) -> None:
 
     """
     segmented_scales = read.segmentations()
+    import numpy as np
+    print(np.unique(segmented_scales[0]))
 
     edge_points = [
         efa.points_around_edge(scale, n_edge_points) for scale in segmented_scales
