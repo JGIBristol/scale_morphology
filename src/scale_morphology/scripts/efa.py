@@ -15,7 +15,7 @@ def main(*, n_edge_points: int, progress: bool) -> None:
     and then save the coefficients in a numpy array.
 
     """
-    segmented_scales = read.segmentations(progress=progress)
+    segmented_scales = read.raw_segmentations(progress=progress)
     import numpy as np
 
     print(np.unique(segmented_scales[0]))

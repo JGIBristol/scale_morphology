@@ -35,12 +35,14 @@ def config() -> dict:
     with open(_root() / "config.yml") as file:
         return yaml.safe_load(file)
 
+
 def _data_dir() -> pathlib.Path:
     """
     The directory holding data
 
     """
     return _root() / "data"
+
 
 def raw_data_dir() -> pathlib.Path:
     """
@@ -58,20 +60,20 @@ def segmentation_dir() -> pathlib.Path:
     return _data_dir() / config()["processed_img_dir"]
 
 
-def _create_greyscale_tiffs(*, progress=True):
+def _raw_paths() -> list[pathlib.Path]:
     """
-    The raw segmentations on OneDrive will be RGB images,
-    in which case we want to standardise them- save them all as
-    greyscale, 8 bit unsigned tiffs
+    Get all the paths to the raw data
 
     """
+    return list(raw_data_dir().glob("*.tif"))
 
-def segmentations(*, progress: bool = False) -> np.ndarray:
+
+def raw_segmentations(*, progress: bool = False) -> np.ndarray:
     """
-    Get all the segmentations in the data directory
+    Get all the segmentations in the raw data directory
 
     """
-    paths = list(raw_data_dir().glob("*.tif"))
+    paths = _raw_paths()
 
     # If they greyscale images don't exist, create them
     if not paths:
@@ -82,9 +84,20 @@ def segmentations(*, progress: bool = False) -> np.ndarray:
     return [imageio.imread(path) for path in paths]
 
 
-def rgb2uint8(images: list[np.ndarray]) -> list[np.ndarray]:
+def _create_greyscale_tiffs(*, progress=True) -> None:
     """
-    Convert a list of RGB images to uint8 greyscale
+    The raw segmentations on OneDrive will be RGB images,
+    in which case we want to standardise them- save them all as
+    greyscale, 8 bit unsigned tiffs
 
     """
-    return [np.mean(image, axis=2).astype(np.uint8) for image in images]
+    out_dir = segmentation_dir()
+    if not out_dir.exists():
+        out_dir.mkdir()
+
+    input_paths = _raw_paths()
+    raw_imgs = raw_segmentations(progress=progress)
+
+    raw_imgs = tqdm(raw_imgs, desc="Saving greyscale images") if progress else raw_imgs
+    for path, img in zip(input_paths, raw_imgs):
+        imageio.imsave(out_dir / path.name, np.mean(img, axis=2).astype(np.uint8))
