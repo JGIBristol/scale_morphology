@@ -4,11 +4,12 @@ Elliptical Fourier Analysis (EFA) of scale shapes
 """
 
 import argparse
+import warnings
 
 import numpy as np
 from tqdm import tqdm
 
-from ..scales import read, processing, efa
+from ..scales import read, efa
 
 
 def main(*, n_edge_points: int, progress: bool, order: int) -> None:
@@ -27,14 +28,10 @@ def main(*, n_edge_points: int, progress: bool, order: int) -> None:
         try:
             coeffs.append(efa.coefficients(scale, n_edge_points, order))
         except efa.BadImgError as e:
-            import matplotlib.pyplot as plt
-            plt.imshow(scale)
-            plt.savefig("tmp.png")
-            print(e)
+            coeffs.append(np.ones((order, 4)) * np.nan)
+            warnings.warn(f"Error processing scale: {e}. NaN coeffs")
 
-    coeffs = np.row_stack(coeffs)
-
-    # Store these in an array
+    coeffs = np.stack(coeffs)
 
 
 def cli():
