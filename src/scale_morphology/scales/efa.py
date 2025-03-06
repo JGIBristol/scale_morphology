@@ -10,6 +10,12 @@ from skimage import measure
 import pyefd
 
 
+class BadImgError(Exception):
+    """
+    Image unsuitable for EFA
+    """
+
+
 def points_around_edge(
     binary_img: np.ndarray, n_points: int
 ) -> tuple[np.ndarray, np.ndarray]:
@@ -104,11 +110,12 @@ def coefficients(binary_img: np.ndarray, n_points: int, order: int) -> None:
     rotated so that the principal axis is horizontal.
 
     """
-    assert measure.euler_number(binary_img) == 1, "Image must contain a single object"
+    if measure.euler_number(binary_img) != 1:
+        raise BadImgError("Image must contain a single object")
 
     x, y = points_around_edge(binary_img, n_points)
 
-    coeffs = pyefd.elliptic_fourier_descriptors(x, y, order=order, normalize=False)
+    coeffs = pyefd.elliptic_fourier_descriptors((x, y), order=order, normalize=False)
 
     return _rotate(coeffs)
 

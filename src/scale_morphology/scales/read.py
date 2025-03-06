@@ -85,7 +85,7 @@ def greyscale_dir() -> pathlib.Path:
     return _data_dir() / config()["processed_img_dir"]
 
 
-def _greyscale_paths() -> list[pathlib.Path]:
+def greyscale_paths() -> list[pathlib.Path]:
     """
     Get a list of paths to the greyscale images
 
@@ -117,12 +117,12 @@ def greyscale_images(*, progress: bool = False) -> np.ndarray:
     Get all the greyscale images
 
     """
-    paths = _greyscale_paths()
+    paths = greyscale_paths()
 
     if not paths:
         warnings.warn("No greyscale images found, creating them now")
         _create_greyscale_tiffs(progress=progress)
-        paths = _greyscale_paths()
+        paths = greyscale_paths()
 
     if progress:
         paths = tqdm(paths, desc="Reading greyscale images")

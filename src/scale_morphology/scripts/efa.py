@@ -5,12 +5,13 @@ Elliptical Fourier Analysis (EFA) of scale shapes
 
 import argparse
 
+import numpy as np
 from tqdm import tqdm
 
 from ..scales import read, processing, efa
 
 
-def main(*, n_edge_points: int, progress: bool) -> None:
+def main(*, n_edge_points: int, progress: bool, order: int) -> None:
     """
     Read in the scale segmentations, find the edges, find evenly spaced
     points along the edges, use these points to perform the EFA
@@ -21,11 +22,17 @@ def main(*, n_edge_points: int, progress: bool) -> None:
     if progress:
         segmented_scales = tqdm(segmented_scales, desc="Processing segmentations")
 
-    edge_points = [
-        efa.points_around_edge(scale, n_edge_points) for scale in segmented_scales
-    ]
+    coeffs = []
+    for scale in segmented_scales:
+        try:
+            coeffs.append(efa.coefficients(scale, n_edge_points, order))
+        except efa.BadImgError as e:
+            import matplotlib.pyplot as plt
+            plt.imshow(scale)
+            plt.savefig("tmp.png")
+            print(e)
 
-    # Perform EFA on the points
+    coeffs = np.row_stack(coeffs)
 
     # Store these in an array
 
@@ -41,6 +48,10 @@ def cli():
         type=int,
         default=100,
         help="Number of equally spaced edge points to use ",
+    )
+
+    parser.add_argument(
+        "--order", type=int, default=25, help="Number of harmonics to use"
     )
 
     parser.add_argument("--progress", action="store_true", help="Show progress bars")
