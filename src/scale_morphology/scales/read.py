@@ -58,7 +58,7 @@ def _raw_paths() -> list[pathlib.Path]:
     Get all the paths to the raw data
 
     """
-    return list(raw_data_dir().glob("*.tif"))
+    return sorted(list(raw_data_dir().glob("*.tif")))
 
 
 def raw_segmentations(*, progress: bool = False) -> np.ndarray:
@@ -90,7 +90,7 @@ def greyscale_paths() -> list[pathlib.Path]:
     Get a list of paths to the greyscale images
 
     """
-    return list(greyscale_dir().glob("*.tif"))
+    return sorted(list(greyscale_dir().glob("*.tif")))
 
 
 def _create_greyscale_tiffs(*, progress=True) -> None:
