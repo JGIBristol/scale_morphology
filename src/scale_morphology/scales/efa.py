@@ -115,8 +115,9 @@ def coefficients(binary_img: np.ndarray, n_points: int, order: int) -> None:
 
     x, y = points_around_edge(binary_img, n_points)
 
-    coeffs = pyefd.elliptic_fourier_descriptors((x, y), order=order, normalize=False)
-
+    coeffs = pyefd.elliptic_fourier_descriptors(
+        np.array([x, y]).T, order=order, normalize=False
+    )
     return _rotate(coeffs)
 
 
