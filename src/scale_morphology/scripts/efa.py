@@ -33,6 +33,9 @@ def main(*, n_edge_points: int, progress: bool, order: int) -> None:
 
     coeffs = np.stack(coeffs)
 
+    with open(read.efa_coeff_path(), "wb") as f:
+        np.save(f, coeffs)
+
 
 def cli():
     """

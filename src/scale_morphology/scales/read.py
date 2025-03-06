@@ -127,3 +127,55 @@ def greyscale_images(*, progress: bool = False) -> np.ndarray:
     if progress:
         paths = tqdm(paths, desc="Reading greyscale images")
     return [imageio.imread(path) for path in paths]
+
+
+def _coeff_dir() -> pathlib.Path:
+    """
+    Get the directory holding the coefficients
+
+    """
+    return _data_dir() / "coeffs"
+
+
+def _efa_coeff_path() -> pathlib.Path:
+    """
+    Get the path to the EFA coefficients
+
+    """
+    return _coeff_dir() / "efa_coeffs.npy"
+
+
+def _autoencoder_coeff_path() -> pathlib.Path:
+    """
+    Get the path to the autoencoder coefficients
+
+    """
+    return _coeff_dir() / "autoencoder_coeffs.npy"
+
+
+def _vae_coeff_path() -> pathlib.Path:
+    """
+    Get the path to the VAE coefficients
+
+    """
+    return _coeff_dir() / "vae_coeffs.npy"
+
+
+def write_efa_coeffs(coeffs: np.ndarray) -> None:
+    """
+    Write the EFA coefficients to disk
+
+    """
+    path = _efa_coeff_path()
+    if not path.parent.exists():
+        path.parent.mkdir()
+
+    np.save(path, coeffs)
+
+
+def read_efa_coeffs() -> np.ndarray:
+    """
+    Read the EFA coefficients from disk
+
+    """
+    return np.load(_efa_coeff_path())
