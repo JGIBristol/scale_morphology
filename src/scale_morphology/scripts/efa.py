@@ -5,6 +5,8 @@ Elliptical Fourier Analysis (EFA) of scale shapes
 
 import argparse
 
+from tqdm import tqdm
+
 from ..scales import read, processing, efa
 
 
@@ -15,10 +17,9 @@ def main(*, n_edge_points: int, progress: bool) -> None:
     and then save the coefficients in a numpy array.
 
     """
-    segmented_scales = read.raw_segmentations(progress=progress)
-    import numpy as np
-
-    print(np.unique(segmented_scales[0]))
+    segmented_scales = read.greyscale_images(progress=progress)
+    if progress:
+        segmented_scales = tqdm(segmented_scales, desc="Processing segmentations")
 
     edge_points = [
         efa.points_around_edge(scale, n_edge_points) for scale in segmented_scales

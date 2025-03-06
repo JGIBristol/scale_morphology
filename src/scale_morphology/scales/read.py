@@ -6,6 +6,7 @@ Utilities for reading data, files, etc.
 import yaml
 import imageio
 import pathlib
+import warnings
 
 import numpy as np
 from tqdm import tqdm
@@ -52,14 +53,6 @@ def raw_data_dir() -> pathlib.Path:
     return _data_dir() / config()["binary_img_dir"]
 
 
-def segmentation_dir() -> pathlib.Path:
-    """
-    The directory holding the pre-processed segmentations
-
-    """
-    return _data_dir() / config()["processed_img_dir"]
-
-
 def _raw_paths() -> list[pathlib.Path]:
     """
     Get all the paths to the raw data
@@ -80,8 +73,24 @@ def raw_segmentations(*, progress: bool = False) -> np.ndarray:
         raise FileNotFoundError(f"No data found in {raw_data_dir()}")
 
     if progress:
-        paths = tqdm(paths, desc="Reading segmentations")
+        paths = tqdm(paths, desc="Reading raw segmentations")
     return [imageio.imread(path) for path in paths]
+
+
+def greyscale_dir() -> pathlib.Path:
+    """
+    The directory holding the pre-processed segmentations
+
+    """
+    return _data_dir() / config()["processed_img_dir"]
+
+
+def _greyscale_paths() -> list[pathlib.Path]:
+    """
+    Get a list of paths to the greyscale images
+
+    """
+    return list(greyscale_dir().glob("*.tif"))
 
 
 def _create_greyscale_tiffs(*, progress=True) -> None:
@@ -91,7 +100,7 @@ def _create_greyscale_tiffs(*, progress=True) -> None:
     greyscale, 8 bit unsigned tiffs
 
     """
-    out_dir = segmentation_dir()
+    out_dir = greyscale_dir()
     if not out_dir.exists():
         out_dir.mkdir()
 
@@ -101,3 +110,20 @@ def _create_greyscale_tiffs(*, progress=True) -> None:
     raw_imgs = tqdm(raw_imgs, desc="Saving greyscale images") if progress else raw_imgs
     for path, img in zip(input_paths, raw_imgs):
         imageio.imsave(out_dir / path.name, np.mean(img, axis=2).astype(np.uint8))
+
+
+def greyscale_images(*, progress: bool = False) -> np.ndarray:
+    """
+    Get all the greyscale images
+
+    """
+    paths = _greyscale_paths()
+
+    if not paths:
+        warnings.warn("No greyscale images found, creating them now")
+        _create_greyscale_tiffs(progress=progress)
+        paths = _greyscale_paths()
+
+    if progress:
+        paths = tqdm(paths, desc="Reading greyscale images")
+    return [imageio.imread(path) for path in paths]
