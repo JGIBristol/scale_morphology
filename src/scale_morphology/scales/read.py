@@ -28,6 +28,13 @@ def _root() -> pathlib.Path:
     return _thisfile().parents[3]
 
 
+def output_dir() -> pathlib.Path:
+    """
+    Where outputs go
+    """
+    return _root() / "output"
+
+
 def config() -> dict:
     """
     Read the config file and return it as a dictionary.
