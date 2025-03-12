@@ -29,9 +29,9 @@ def points_around_edge(
     :param n_points: Number of points to generate.
     :return: x, y coordinates of the points.
     """
-    assert np.isdtype(
-        binary_img.dtype, np.uint8
-    ), f"Input must be uint8: {binary_img.dtype=}"
+    assert np.isdtype(binary_img.dtype, np.uint8), (
+        f"Input must be uint8: {binary_img.dtype=}"
+    )
 
     assert set(np.unique(binary_img)) <= {
         0,

@@ -18,9 +18,9 @@ def has_holes(binary_img: np.ndarray) -> bool:
     :return: bool
 
     """
-    assert np.isdtype(
-        binary_img.dtype, np.uint8
-    ), f"Input must be uint8: {binary_img.dtype=}"
+    assert np.isdtype(binary_img.dtype, np.uint8), (
+        f"Input must be uint8: {binary_img.dtype=}"
+    )
 
     assert set(np.unique(binary_img)) <= {
         0,
@@ -43,9 +43,9 @@ def fill_background(binary_img: np.typing.NDArray) -> np.typing.NDArray:
     :return: the image with all regions but the largest filled in
 
     """
-    assert np.isdtype(
-        binary_img.dtype, np.uint8
-    ), f"Input must be uint8: {binary_img.dtype=}"
+    assert np.isdtype(binary_img.dtype, np.uint8), (
+        f"Input must be uint8: {binary_img.dtype=}"
+    )
 
     assert set(np.unique(binary_img)) <= {
         0,
