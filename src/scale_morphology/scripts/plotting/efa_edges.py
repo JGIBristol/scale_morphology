@@ -21,7 +21,7 @@ def main():
     paths = read.greyscale_paths()
     images = read.greyscale_images(progress=True)
 
-    coeffs = read.read_efa_coeffs()
+    coeffs = read.read_coeffs("efa")
 
     for path, image, coeff in zip(tqdm(paths), images, coeffs):
         fig, axes = plt.subplots(1, 2, figsize=(8, 4), sharex=True, sharey=True)

@@ -184,21 +184,21 @@ def coeff_path(compression_method: str) -> pathlib.Path:
             raise ValueError(f"Unknown compression method: {compression_method}")
 
 
-def write_efa_coeffs(coeffs: np.ndarray) -> None:
+def write_coeffs(coeffs: np.ndarray, compression_method: str) -> None:
     """
     Write the EFA coefficients to disk
 
     """
-    path = _efa_coeff_path()
+    path = coeff_path(compression_method)
     if not path.parent.exists():
         path.parent.mkdir()
 
     np.save(path, coeffs)
 
 
-def read_efa_coeffs() -> np.ndarray:
+def read_coeffs(compression_method: str) -> np.ndarray:
     """
     Read the EFA coefficients from disk
 
     """
-    return np.load(_efa_coeff_path())
+    return np.load(coeff_path(compression_method))

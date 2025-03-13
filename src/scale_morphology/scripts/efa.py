@@ -33,7 +33,7 @@ def main(*, n_edge_points: int, progress: bool, order: int) -> None:
 
     coeffs = np.stack(coeffs)
 
-    read.write_efa_coeffs(coeffs)
+    read.write_coeffs(coeffs, "efa")
 
 
 def cli():
