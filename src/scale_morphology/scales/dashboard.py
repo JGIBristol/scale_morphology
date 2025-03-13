@@ -32,7 +32,7 @@ def embeddable_image(image: np.ndarray, *, thumbnail_size: int = (64, 64)) -> st
     """
     errors.check_binary_img(image)
 
-    resized = resize(image, thumbnail_size, anti_aliasing=False)
+    resized = 255 * resize(image, thumbnail_size, anti_aliasing=False)
 
     buffered = BytesIO()
     img = Image.fromarray(resized)
@@ -134,6 +134,6 @@ def dashboard(
     save(
         fig,
         filename=filename,
-        title=filename.replace(".html", ""),
+        title=pathlib.Path(filename.replace(".html", "")).name,
         resources=INLINE,
     )
