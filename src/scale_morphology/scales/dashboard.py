@@ -17,7 +17,7 @@ from skimage.transform import resize
 from bokeh.plotting import figure, save
 from bokeh.models import ColumnDataSource, HoverTool
 
-from scale_morphology.scales import errors
+from scale_morphology.scales import errors, read
 
 
 def embeddable_image(image: np.ndarray, *, thumbnail_size: int = (64, 64)) -> str:
@@ -38,36 +38,61 @@ def embeddable_image(image: np.ndarray, *, thumbnail_size: int = (64, 64)) -> st
     return f"data:image/png;base64,{base64.b64encode(buffered.getvalue()).decode()}"
 
 
-def dashboard_df(coeffs: np.ndarray) -> pd.DataFrame:
+def dashboard_df(coeffs: np.ndarray, *, progress: bool) -> pd.DataFrame:
     """
     Build a dataframe holding the information we need to create the dashboard.
     This includes the dimension-reduced co-ords, the original image, and the
     filename.
 
     """
-    # Check the coeffs are 2d
     # Get greyscale image paths
+    paths = read.greyscale_paths()
+
     # Check that we have the right number of coeffs
+    if len(coeffs) != len(paths):
+        raise ValueError(
+            "Number of images and PCA coefficients don't match:"
+            f"{len(coeffs)} vs {len(paths)}"
+        )
+
     # Get the image names
+    names = [path.name.replace("_rois.tif", "") for path in paths]
+
     # Convert images to strings
+    images = [
+        embeddable_image(image) for image in read.greyscale_images(progress=progress)
+    ]
+
     # Build the dataframe
+    df = pd.DataFrame(coeffs, columns=["x", "y"])
+
+    df["images"] = images
+    df["names"] = names
+
+    return df
 
 
-def dashboard(coeffs: np.ndarray, filename: str | pathlib.Path) -> None:
+def dashboard(
+    coeffs: np.ndarray, filename: str | pathlib.Path, *, progress: bool = False
+) -> None:
     """
     Create a dashboard to visualise the PCA of the EFA coefficients
 
     :param coeffs: the PCA coefficients
     :param filename: the HTML file to save the dashboard
+    :param progress: whether to show progress bars
 
     """
+    if not coeffs.shape[1] == 2:
+        raise ValueError("Dim reduced co-ords should be 2D")
+
     if isinstance(filename, pathlib.Path):
         filename = str(filename)
     if not filename.endswith(".html"):
         filename = filename + ".html"
 
     # Build the dataframe
-    df = dashboard_df(coeffs)
+    df = dashboard_df(coeffs, progress=progress)
 
     # Create the figure
     datasource = ColumnDataSource(df)
