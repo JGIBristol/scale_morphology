@@ -9,7 +9,7 @@ import warnings
 import numpy as np
 from tqdm import tqdm
 
-from ..scales import read, efa
+from ..scales import read, efa, errors
 
 
 def main(*, n_edge_points: int, progress: bool, order: int) -> None:
@@ -27,11 +27,16 @@ def main(*, n_edge_points: int, progress: bool, order: int) -> None:
     for scale in segmented_scales:
         try:
             coeffs.append(efa.coefficients(scale, n_edge_points, order))
-        except efa.BadImgError as e:
+        except errors.BadImgError as e:
             coeffs.append(np.ones((order, 4)) * np.nan)
-            warnings.warn(f"Error processing scale: {e}. NaN coeffs")
+            warnings.warn(f"\nError processing scale: {e}. NaN coeffs")
 
     coeffs = np.stack(coeffs)
+    if np.isnan(coeffs).any():
+        warnings.warn(
+            f"{np.isnan(coeffs).sum()} NaNs in the coefficients;"
+            f"At: {np.argwhere(np.isnan(coeffs))}"
+        )
 
     read.write_coeffs(coeffs, "efa")
 
