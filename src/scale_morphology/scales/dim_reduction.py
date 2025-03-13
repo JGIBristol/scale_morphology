@@ -5,6 +5,7 @@ Stuff for dimensionality reduction
 
 import numpy as np
 from sklearn.decomposition import PCA
+
 # from umap import UMAP
 
 
@@ -59,3 +60,20 @@ def umap(coeffs: np.typing.NDArray, *, flatten: bool = False) -> np.typing.NDArr
         raise ValueError("Coeffs should be 2D; 3D input should be flattened")
 
     return UMAP(n_components=2).fit_transform(coeffs)
+
+
+def get_dim_reduction(dim_reduction_method: str) -> callable:
+    """
+    Get the dimensionality reduction method
+
+    """
+    match dim_reduction_method:
+        case "pca":
+            return pca
+        case "umap":
+            return umap
+        case _:
+            raise ValueError(
+                "Unknown dimensionality reduction method:"
+                f"{dim_reduction_method}, must be one of 'pca', 'umap'"
+            )
