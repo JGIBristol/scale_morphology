@@ -9,11 +9,7 @@ from skimage import measure
 
 import pyefd
 
-
-class BadImgError(Exception):
-    """
-    Image unsuitable for EFA
-    """
+from scale_morphology.scales import errors
 
 
 def points_around_edge(
@@ -29,14 +25,7 @@ def points_around_edge(
     :param n_points: Number of points to generate.
     :return: x, y coordinates of the points.
     """
-    assert np.isdtype(binary_img.dtype, np.uint8), (
-        f"Input must be uint8: {binary_img.dtype=}"
-    )
-
-    assert set(np.unique(binary_img)) <= {
-        0,
-        255,
-    }, f"Input must be a binary image: {np.unique(binary_img)=}"
+    errors.check_binary_img(binary_img)
 
     contour_points = measure.find_contours(binary_img, fully_connected="high")[0]
 
@@ -111,7 +100,7 @@ def coefficients(binary_img: np.ndarray, n_points: int, order: int) -> None:
 
     """
     if measure.euler_number(binary_img) != 1:
-        raise BadImgError("Image must contain a single object")
+        raise errors.HolesError("Image must contain a single object")
 
     x, y = points_around_edge(binary_img, n_points)
 
