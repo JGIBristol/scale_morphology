@@ -6,12 +6,16 @@ reduced-dimension space.
 """
 
 import base64
+import pathlib
 from io import BytesIO
 
 import numpy as np
 import pandas as pd
 from PIL import Image
 from skimage.transform import resize
+
+from bokeh.plotting import figure, save
+from bokeh.models import ColumnDataSource, HoverTool
 
 from scale_morphology.scales import errors
 
@@ -33,6 +37,7 @@ def embeddable_image(image: np.ndarray, *, thumbnail_size: int = (64, 64)) -> st
     Image.fromarray(resized).save(buffered, format="PNG")
     return f"data:image/png;base64,{base64.b64encode(buffered.getvalue()).decode()}"
 
+
 def dashboard_df(coeffs: np.ndarray) -> pd.DataFrame:
     """
     Build a dataframe holding the information we need to create the dashboard.
@@ -46,3 +51,56 @@ def dashboard_df(coeffs: np.ndarray) -> pd.DataFrame:
     # Get the image names
     # Convert images to strings
     # Build the dataframe
+
+
+def dashboard(coeffs: np.ndarray, filename: str | pathlib.Path) -> None:
+    """
+    Create a dashboard to visualise the PCA of the EFA coefficients
+
+    :param coeffs: the PCA coefficients
+    :param filename: the HTML file to save the dashboard
+
+    """
+    if isinstance(filename, pathlib.Path):
+        filename = str(filename)
+    if not filename.endswith(".html"):
+        filename = filename + ".html"
+
+    # Build the dataframe
+    df = dashboard_df(coeffs)
+
+    # Create the figure
+    datasource = ColumnDataSource(df)
+    fig = figure(
+        title="Dimension-reduced Scale Dataset",
+        plot_width=800,
+        plot_height=800,
+        tools="pan, wheel_zoom, box_zoom, reset",
+    )
+
+    fig.add_tools(
+        (
+            HoverTool(
+                tooltips="""
+<div>
+    <div>
+        <img src="@image" style="float: left; margin: 5px 5px 5px 5px;">
+    </div>
+    <div>
+        <span style="font-size: 17px; font-weight: bold;">@filename</span>
+    </div>
+</div>
+"""
+            )
+        )
+    )
+
+    fig.scatter(
+        x="x",
+        y="y",
+        source=datasource,
+        size=4,
+        color="black",
+    )
+
+    save(fig, filename=filename)
