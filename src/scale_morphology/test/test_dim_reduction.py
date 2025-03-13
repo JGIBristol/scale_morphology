@@ -24,7 +24,7 @@ def test_flatten():
         ]
     )
 
-    flattened = dim_reduction.flatten(efa_coeffs)
+    flattened = dim_reduction._flatten(efa_coeffs)
 
     assert flattened.shape == (2, 12)
     assert (

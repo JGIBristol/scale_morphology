@@ -9,7 +9,7 @@ from sklearn.decomposition import PCA
 # from umap import UMAP
 
 
-def flatten(coeffs: np.typing.NDArray) -> np.typing.NDArray:
+def _flatten(coeffs: np.typing.NDArray) -> np.typing.NDArray:
     """
     Flatten the input data to remove the harmonic dimension
     """
@@ -30,7 +30,7 @@ def pca(coeffs: np.typing.NDArray, *, flatten: bool = False) -> np.typing.NDArra
     :return: The transformed data, as a numpy array of shape (N, 2)
     """
     if flatten:
-        coeffs = flatten(coeffs)
+        coeffs = _flatten(coeffs)
 
     if coeffs.ndim != 2:
         raise ValueError("Coeffs should be 2D; 3D input should be flattened")
@@ -54,7 +54,7 @@ def umap(coeffs: np.typing.NDArray, *, flatten: bool = False) -> np.typing.NDArr
     """
     raise NotImplementedError("TODO - add umap to the env")
     if flatten:
-        coeffs = flatten(coeffs)
+        coeffs = _flatten(coeffs)
 
     if coeffs.ndim != 2:
         raise ValueError("Coeffs should be 2D; 3D input should be flattened")

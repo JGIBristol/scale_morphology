@@ -34,6 +34,7 @@ testpaths = ["src/scale_morphology/test"]
 efa = "scale_morphology.scripts.efa:cli"
 autoencoder = "scale_morphology.scripts.autoencoder:main"
 vae = "scale_morphology.scripts.vae:main"
+dashboard = "scale_morphology.scripts.dashboard:cli"
 
 [build-system]
 requires = ["hatchling"]

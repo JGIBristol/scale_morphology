@@ -4,19 +4,54 @@ of the EFA, autoencoder, or VAE coefficients.
 
 """
 
+import warnings
 import argparse
 
+import numpy as np
 
-def main():
+from scale_morphology.scales import read, dim_reduction
+
+
+def main(*, compression_method: str, dim_reduction_method: str, progress: bool) -> None:
     """
     Read in the specified coefficients then create the dashboard
     """
+    # Read the coefficients
+    coeffs = read.read_coeffs(compression_method)
+
+    coeffs[np.isnan(coeffs)] = 0
+    warnings.warn("NaNs in the coefficients have been replaced with 0")
+
+    # Perform the dimensionality reduction
+    # We only need to flatten the EFA coefficients
+    red_method = dim_reduction.get_dim_reduction(dim_reduction_method)
+    reduced = red_method(coeffs, flatten=(compression_method == "efa"))
 
 
 def cli():
     """
     Command line interface
     """
+    parser = argparse.ArgumentParser(description=main.__doc__)
+
+    parser.add_argument(
+        "compression_method",
+        choices={"efa", "autoencoder", "vae"},
+        help="The method used to compress the images to vectors",
+    )
+    parser.add_argument(
+        "dim_reduction_method",
+        type=str,
+        help="The method used to reduce the dimensionality of the vectors",
+    )
+
+    parser.add_argument(
+        "--progress",
+        action="store_true",
+        help="Show progress bars",
+    )
+
+    main(**vars(parser.parse_args()))
 
 
 if __name__ == "__main__":
