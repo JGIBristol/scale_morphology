@@ -5,7 +5,7 @@ Stuff for dimensionality reduction
 
 import numpy as np
 from sklearn.decomposition import PCA
-from umap import UMAP
+# from umap import UMAP
 
 
 def flatten(coeffs: np.typing.NDArray) -> np.typing.NDArray:
@@ -51,6 +51,7 @@ def umap(coeffs: np.typing.NDArray, *, flatten: bool = False) -> np.typing.NDArr
     :return: The transformed data, as a numpy array of shape (N, 2)
 
     """
+    raise NotImplementedError("TODO - add umap to the env")
     if flatten:
         coeffs = flatten(coeffs)
 
