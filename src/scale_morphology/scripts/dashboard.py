@@ -28,8 +28,14 @@ def main(*, compression_method: str, dim_reduction_method: str, progress: bool) 
     red_method = dim_reduction.get_dim_reduction(dim_reduction_method)
     reduced = red_method(coeffs, flatten=(compression_method == "efa"))
 
+    out_dir = read.output_dir() / "dashboards"
+    if not out_dir.exists():
+        out_dir.mkdir(parents=True)
+
     dashboard(
-        reduced, f"{compression_method}_{dim_reduction_method}.html", progress=progress
+        reduced,
+        f"{out_dir / '_'.join([compression_method, dim_reduction_method])}.html",
+        progress=progress,
     )
 
 

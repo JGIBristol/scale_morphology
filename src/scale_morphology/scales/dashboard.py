@@ -16,6 +16,7 @@ from skimage.transform import resize
 
 from bokeh.plotting import figure, save
 from bokeh.models import ColumnDataSource, HoverTool
+from bokeh.resources import INLINE
 
 from scale_morphology.scales import errors, read
 
@@ -34,7 +35,9 @@ def embeddable_image(image: np.ndarray, *, thumbnail_size: int = (64, 64)) -> st
     resized = resize(image, thumbnail_size, anti_aliasing=False)
 
     buffered = BytesIO()
-    Image.fromarray(resized).save(buffered, format="PNG")
+    img = Image.fromarray(resized)
+    img = img.convert("RGB")
+    img.save(buffered, format="PNG")
     return f"data:image/png;base64,{base64.b64encode(buffered.getvalue()).decode()}"
 
 
@@ -98,8 +101,8 @@ def dashboard(
     datasource = ColumnDataSource(df)
     fig = figure(
         title="Dimension-reduced Scale Dataset",
-        plot_width=800,
-        plot_height=800,
+        width=800,
+        height=800,
         tools="pan, wheel_zoom, box_zoom, reset",
     )
 
@@ -128,4 +131,9 @@ def dashboard(
         color="black",
     )
 
-    save(fig, filename=filename)
+    save(
+        fig,
+        filename=filename,
+        title=filename.replace(".html", ""),
+        resources=INLINE,
+    )
