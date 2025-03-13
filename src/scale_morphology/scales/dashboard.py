@@ -9,6 +9,7 @@ import base64
 from io import BytesIO
 
 import numpy as np
+import pandas as pd
 from PIL import Image
 from skimage.transform import resize
 
@@ -31,3 +32,17 @@ def embeddable_image(image: np.ndarray, *, thumbnail_size: int = (64, 64)) -> st
     buffered = BytesIO()
     Image.fromarray(resized).save(buffered, format="PNG")
     return f"data:image/png;base64,{base64.b64encode(buffered.getvalue()).decode()}"
+
+def dashboard_df(coeffs: np.ndarray) -> pd.DataFrame:
+    """
+    Build a dataframe holding the information we need to create the dashboard.
+    This includes the dimension-reduced co-ords, the original image, and the
+    filename.
+
+    """
+    # Check the coeffs are 2d
+    # Get greyscale image paths
+    # Check that we have the right number of coeffs
+    # Get the image names
+    # Convert images to strings
+    # Build the dataframe
