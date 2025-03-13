@@ -168,6 +168,22 @@ def _vae_coeff_path() -> pathlib.Path:
     return _coeff_dir() / "vae_coeffs.npy"
 
 
+def coeff_path(compression_method: str) -> pathlib.Path:
+    """
+    Get the path to the coefficients
+
+    """
+    match compression_method:
+        case "efa":
+            return _efa_coeff_path()
+        case "autoencoder":
+            return _autoencoder_coeff_path()
+        case "vae":
+            return _vae_coeff_path()
+        case _:
+            raise ValueError(f"Unknown compression method: {compression_method}")
+
+
 def write_efa_coeffs(coeffs: np.ndarray) -> None:
     """
     Write the EFA coefficients to disk
