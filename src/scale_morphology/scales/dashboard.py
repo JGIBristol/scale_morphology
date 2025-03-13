@@ -69,8 +69,8 @@ def dashboard_df(coeffs: np.ndarray, *, progress: bool) -> pd.DataFrame:
     # Build the dataframe
     df = pd.DataFrame(coeffs, columns=["x", "y"])
 
-    df["images"] = images
-    df["names"] = names
+    df["image"] = images
+    df["filename"] = names
 
     return df
 
