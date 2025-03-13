@@ -10,6 +10,7 @@ import argparse
 import numpy as np
 
 from scale_morphology.scales import read, dim_reduction
+from scale_morphology.scales.dashboard import dashboard
 
 
 def main(*, compression_method: str, dim_reduction_method: str, progress: bool) -> None:
@@ -26,6 +27,10 @@ def main(*, compression_method: str, dim_reduction_method: str, progress: bool) 
     # We only need to flatten the EFA coefficients
     red_method = dim_reduction.get_dim_reduction(dim_reduction_method)
     reduced = red_method(coeffs, flatten=(compression_method == "efa"))
+
+    dashboard(
+        reduced, f"{compression_method}_{dim_reduction_method}.html", progress=progress
+    )
 
 
 def cli():
