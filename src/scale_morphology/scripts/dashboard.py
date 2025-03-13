@@ -20,8 +20,10 @@ def main(*, compression_method: str, dim_reduction_method: str, progress: bool) 
     # Read the coefficients
     coeffs = read.read_coeffs(compression_method)
 
-    coeffs[np.isnan(coeffs)] = 0
-    warnings.warn("NaNs in the coefficients have been replaced with 0")
+    nans = np.isnan(coeffs)
+    if nans.any():
+        warnings.warn("NaNs in the coefficients - these will be dropped")
+
 
     # Perform the dimensionality reduction
     # We only need to flatten the EFA coefficients
