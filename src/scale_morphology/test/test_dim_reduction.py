@@ -33,6 +33,33 @@ def test_nan_3d():
     """
     Check we can correctly mask out NaNs for 2d indices
     """
+    # N = 5, d = 2
+    coeffs = np.array(
+        [
+            [
+                [np.nan, 2, 3, 4],
+                [1, 2, 3, 4],
+            ],
+            [
+                [1, 2, 3, 4],
+                [1, 2, 3, 4],
+            ],
+            [
+                [1, 2, 3, np.nan],
+                [1, np.nan, 3, 4],
+            ],
+            [
+                [np.nan, np.nan, np.nan, np.nan],
+                [1, 2, 3, 4],
+            ],
+            [
+                [np.nan, np.nan, np.nan, np.nan],
+                [np.nan, np.nan, np.nan, np.nan],
+            ],
+        ]
+    )
+    expected = np.array([True, False, True, True, True])
+    assert (dim_reduction.nan_scale_mask(coeffs) == expected).all()
 
 
 def test_flatten():
