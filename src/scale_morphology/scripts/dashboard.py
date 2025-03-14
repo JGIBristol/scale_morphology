@@ -10,7 +10,7 @@ import argparse
 import numpy as np
 
 from scale_morphology.scales import read, dim_reduction
-from scale_morphology.scales.dashboard import dashboard
+from scale_morphology.scales import dashboard
 
 
 def main(*, compression_method: str, dim_reduction_method: str, progress: bool) -> None:
