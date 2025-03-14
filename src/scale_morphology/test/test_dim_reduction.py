@@ -9,9 +9,11 @@ def test_nan_2d():
     Check we can correctly mask out NaNs for 2d indices
     """
     coeffs = np.array(
-        [1, 2, 3],
-        [1, np.nan, 3],
-        [np.nan, np.nan, np.nan],
+        [
+            [1, 2, 3],
+            [1, np.nan, 3],
+            [np.nan, np.nan, np.nan],
+        ]
     )
     expected = np.array([False, True, True])
 
@@ -24,7 +26,7 @@ def test_nan_3d_wrong_shape():
 
     """
     # 3 scales, 4 harmonics, 5 coeffs per harmonic (wrong)
-    coeffs = np.ndarray(shape=(3, 4, 5))
+    coeffs = np.empty((3, 4, 5))
     with pytest.raises(ValueError):
         dim_reduction.nan_scale_mask(coeffs)
 
