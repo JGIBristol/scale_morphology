@@ -30,13 +30,23 @@ def main(*, compression_method: str, dim_reduction_method: str, progress: bool) 
     # Perform the dimensionality reduction
     # We only need to flatten the EFA coefficients
     red_method = dim_reduction.get_dim_reduction(dim_reduction_method)
-    reduced = red_method(coeffs, flatten=(compression_method == "efa"), drop=nan_rows)
+    reduced, fitter = red_method(
+        coeffs, flatten=(compression_method == "efa"), drop=nan_rows
+    )
 
     out_dir = read.output_dir() / "dashboards"
     if not out_dir.exists():
         out_dir.mkdir(parents=True)
 
     plot_kw = {}
+    if dim_reduction_method == "pca":
+        plot_kw["x_axis_label"] = (
+            f"PC1 ({100 * fitter.explained_variance_ratio_[0]:.1f}% variance)"
+        )
+        plot_kw["y_axis_label"] = (
+            f"PC2 ({100 * fitter.explained_variance_ratio_[1]:.3f}% variance)"
+        )
+
     dashboard.write_dashboard(
         reduced,
         f"{out_dir / '_'.join([compression_method, dim_reduction_method])}.html",
