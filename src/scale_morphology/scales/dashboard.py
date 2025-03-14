@@ -85,6 +85,7 @@ def write_dashboard(
     *,
     progress: bool = False,
     drop: np.ndarray | None = None,
+    **fig_kw,
 ) -> None:
     """
     Create a dashboard to visualise the PCA of the EFA coefficients
@@ -115,6 +116,7 @@ def write_dashboard(
         width=800,
         height=800,
         tools="pan, wheel_zoom, box_zoom, reset",
+        **fig_kw,
     )
 
     fig.add_tools(
