@@ -41,7 +41,9 @@ def embeddable_image(image: np.ndarray, *, thumbnail_size: int = (64, 64)) -> st
     return f"data:image/png;base64,{base64.b64encode(buffered.getvalue()).decode()}"
 
 
-def dashboard_df(coeffs: np.ndarray, *, progress: bool) -> pd.DataFrame:
+def dashboard_df(
+    coeffs: np.ndarray, *, progress: bool, drop: np.ndarray
+) -> pd.DataFrame:
     """
     Build a dataframe holding the information we need to create the dashboard.
     This includes the dimension-reduced co-ords, the original image, and the
@@ -49,7 +51,8 @@ def dashboard_df(coeffs: np.ndarray, *, progress: bool) -> pd.DataFrame:
 
     """
     # Get greyscale image paths
-    paths = read.greyscale_paths()
+    # Convert to a np array so we can use the mask for indexing
+    paths = np.array(read.greyscale_paths())[drop]
 
     # Check that we have the right number of coeffs
     if len(coeffs) != len(paths):
@@ -76,7 +79,11 @@ def dashboard_df(coeffs: np.ndarray, *, progress: bool) -> pd.DataFrame:
 
 
 def write_dashboard(
-    coeffs: np.ndarray, filename: str | pathlib.Path, *, progress: bool = False
+    coeffs: np.ndarray,
+    filename: str | pathlib.Path,
+    *,
+    progress: bool = False,
+    drop: np.ndarray | None = None,
 ) -> None:
     """
     Create a dashboard to visualise the PCA of the EFA coefficients
@@ -84,10 +91,13 @@ def write_dashboard(
     :param coeffs: the PCA coefficients
     :param filename: the HTML file to save the dashboard
     :param progress: whether to show progress bars
+    :param drop: 1d N-length boolean mask of scales to exclude from the dashboard
 
     """
     if not coeffs.shape[1] == 2:
         raise ValueError("Dim reduced co-ords should be 2D")
+    if drop is None:
+        drop = np.zeros(coeffs.shape[0], dtype=bool)
 
     if isinstance(filename, pathlib.Path):
         filename = str(filename)
@@ -95,7 +105,7 @@ def write_dashboard(
         filename = filename + ".html"
 
     # Build the dataframe
-    df = dashboard_df(coeffs, progress=progress)
+    df = dashboard_df(coeffs, progress=progress, drop=drop)
 
     # Create the figure
     datasource = ColumnDataSource(df)

@@ -24,11 +24,13 @@ def main(*, compression_method: str, dim_reduction_method: str, progress: bool) 
     if nans.any():
         warnings.warn("NaNs in the coefficients - these will be dropped")
 
+    # Find the indices where the coeffs are NaN and drop them
+    nan_rows = dim_reduction.nan_scale_mask(coeffs)
 
     # Perform the dimensionality reduction
     # We only need to flatten the EFA coefficients
     red_method = dim_reduction.get_dim_reduction(dim_reduction_method)
-    reduced = red_method(coeffs, flatten=(compression_method == "efa"))
+    reduced = red_method(coeffs, flatten=(compression_method == "efa"), drop=nan_rows)
 
     out_dir = read.output_dir() / "dashboards"
     if not out_dir.exists():

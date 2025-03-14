@@ -39,7 +39,9 @@ def _flatten(coeffs: np.typing.NDArray) -> np.typing.NDArray:
     return coeffs.reshape((coeffs.shape[0], -1))
 
 
-def pca(coeffs: np.typing.NDArray, *, flatten: bool = False) -> np.typing.NDArray:
+def pca(
+    coeffs: np.typing.NDArray, *, flatten: bool = False, drop: np.ndarray | None = None
+) -> np.typing.NDArray:
     """
     Perform PCA on the input data
 
@@ -49,9 +51,14 @@ def pca(coeffs: np.typing.NDArray, *, flatten: bool = False) -> np.typing.NDArra
                    as is the case for the EFA.
                    In the latter case the input should be flattened.
     :param flatten: Whether to flatten the output
+    :param drop: 1d N-length boolean mask of scales to drop
 
     :return: The transformed data, as a numpy array of shape (N, 2)
     """
+    if drop is None:
+        drop = np.zeros(coeffs.shape[0], dtype=bool)
+    coeffs = coeffs[~drop]
+
     if flatten:
         coeffs = _flatten(coeffs)
 
@@ -71,16 +78,25 @@ def umap(coeffs: np.typing.NDArray, *, flatten: bool = False) -> np.typing.NDArr
                    as is the case for the EFA.
                    In the latter case the input should be flattened.
     :param flatten: Whether to flatten the output
+    :param drop: 1d N-length boolean mask of scales to drop
 
     :return: The transformed data, as a numpy array of shape (N, 2)
 
     """
     raise NotImplementedError("TODO - add umap to the env")
+
+    if drop is None:
+        drop = np.zeros(coeffs.shape[0], dtype=bool)
+    coeffs = coeffs[~drop]
+
     if flatten:
         coeffs = _flatten(coeffs)
 
     if coeffs.ndim != 2:
         raise ValueError("Coeffs should be 2D; 3D input should be flattened")
+
+    if len(drop) != coeffs.shape[0]:
+        raise ValueError("Drop should be 1D and N-length")
 
     return UMAP(n_components=2).fit_transform(coeffs)
 
