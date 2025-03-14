@@ -20,12 +20,11 @@ def main(*, compression_method: str, dim_reduction_method: str, progress: bool) 
     # Read the coefficients
     coeffs = read.read_coeffs(compression_method)
 
-    nans = np.isnan(coeffs)
-    if nans.any():
-        warnings.warn("NaNs in the coefficients - these will be dropped")
 
     # Find the indices where the coeffs are NaN and drop them
     nan_rows = dim_reduction.nan_scale_mask(coeffs)
+    if nan_rows.any():
+        warnings.warn(f"{nan_rows.sum()} NaNs in the coefficients - these will be dropped")
 
     # Perform the dimensionality reduction
     # We only need to flatten the EFA coefficients
@@ -40,6 +39,7 @@ def main(*, compression_method: str, dim_reduction_method: str, progress: bool) 
         reduced,
         f"{out_dir / '_'.join([compression_method, dim_reduction_method])}.html",
         progress=progress,
+        drop=nan_rows,
     )
 
 

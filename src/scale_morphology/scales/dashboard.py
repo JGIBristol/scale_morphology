@@ -52,7 +52,7 @@ def dashboard_df(
     """
     # Get greyscale image paths
     # Convert to a np array so we can use the mask for indexing
-    paths = np.array(read.greyscale_paths())[drop]
+    paths = np.array(read.greyscale_paths())[~drop]
 
     # Check that we have the right number of coeffs
     if len(coeffs) != len(paths):
@@ -66,7 +66,8 @@ def dashboard_df(
 
     # Convert images to strings
     images = [
-        embeddable_image(image) for image in read.greyscale_images(progress=progress)
+        embeddable_image(image)
+        for image in np.array(read.greyscale_images(progress=progress))[~drop]
     ]
 
     # Build the dataframe
