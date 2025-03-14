@@ -1,3 +1,4 @@
+import pytest
 import numpy as np
 
 from ..scales import dim_reduction
@@ -20,7 +21,12 @@ def test_nan_2d():
 def test_nan_3d_wrong_shape():
     """
     Check the right error is raised if the 3d array doesnt have 4-length coeffs
+
     """
+    # 3 scales, 4 harmonics, 5 coeffs per harmonic (wrong)
+    coeffs = np.ndarray(shape=(3, 4, 5))
+    with pytest.raises(ValueError):
+        dim_reduction.nan_scale_mask(coeffs)
 
 
 def test_nan_3d():
