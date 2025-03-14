@@ -6,7 +6,30 @@ Stuff for dimensionality reduction
 import numpy as np
 from sklearn.decomposition import PCA
 
+
 # from umap import UMAP
+
+
+def nan_scale_mask(coeffs: np.typing.NDArray) -> np.typing.NDArray:
+    """
+    Find where there are NaNs in the array of coefficients.
+
+    Any scale with a NaN will be indicated here; returns an
+    N-length 1d array of indices that can be used to remove any
+    NaNs from the data.
+
+    This function works for the (N, d, 4) shaped EFA coeffs
+    and also the (N, d) shaped autoencoder and VAE coeffs
+
+    :param coeffs: The array of coefficients, shaped (N, d) or (N, d, 4)
+    :return: an N-length boolean mask indicating which scales have NaNs
+
+    """
+    if coeffs.ndim == 2:
+        return np.isnan(coeffs).any(axis=1)
+    if coeffs.ndim == 3 and coeffs.shape[-1] == 4:
+        return np.isnan(coeffs).any(axis=(1, 2))
+    raise ValueError("Coeffs should be 2D or 3D with last dimension 4")
 
 
 def _flatten(coeffs: np.typing.NDArray) -> np.typing.NDArray:
