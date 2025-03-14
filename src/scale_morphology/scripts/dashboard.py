@@ -34,7 +34,7 @@ def main(*, compression_method: str, dim_reduction_method: str, progress: bool) 
     if not out_dir.exists():
         out_dir.mkdir(parents=True)
 
-    dashboard(
+    dashboard.write_dashboard(
         reduced,
         f"{out_dir / '_'.join([compression_method, dim_reduction_method])}.html",
         progress=progress,

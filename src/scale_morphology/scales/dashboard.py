@@ -75,7 +75,7 @@ def dashboard_df(coeffs: np.ndarray, *, progress: bool) -> pd.DataFrame:
     return df
 
 
-def dashboard(
+def write_dashboard(
     coeffs: np.ndarray, filename: str | pathlib.Path, *, progress: bool = False
 ) -> None:
     """
