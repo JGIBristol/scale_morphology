@@ -38,6 +38,11 @@ def main(*, n_edge_points: int, progress: bool, order: int) -> None:
             f"At: {np.argwhere(np.isnan(coeffs))}"
         )
 
+    # Importantly, we don't scale the coefficients here. This is because we want to keep the
+    # variation in scale between the different coefficients - the earlier ones track the global
+    # shape and size of the scale, but the later ones track the finer details. Scaling weights
+    # these all equally, but we care more about the overall shape for our morphology studies
+    # which means we don't want to scale the coefficients.
     read.write_coeffs(coeffs, "efa")
 
 
