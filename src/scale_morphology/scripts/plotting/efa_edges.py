@@ -29,10 +29,15 @@ def main(n_imgs: int | None):
     coeffs = read.read_coeffs("efa")
 
     for path, image, coeff in zip(tqdm(paths), images, coeffs):
-        fig, axes = plt.subplots(1, 2, figsize=(8, 4))
+        fig, axes = plt.subplots(
+            1,
+            2,
+            figsize=(12, 6),
+            sharey=True,
+        )
 
         # Show image
-        axes[0].imshow(image.T, cmap="gray", origin="upper")
+        axes[0].imshow(image.T, cmap="gray", origin="lower")
         axes[1].set_aspect("equal")
 
         # Show EFA
@@ -41,9 +46,10 @@ def main(n_imgs: int | None):
             coeff,
             axis=axes[1],
             color="r",
-            label="EFA",
-            marker=".",
-            linestyle="none",
+            markersize=1,
+            linestyle="-",
+            linewidth=1,
+            label="EFA Approximation",
         )
 
         # Show detected edges
@@ -53,8 +59,13 @@ def main(n_imgs: int | None):
         axes[0].set_title("Original Image")
         axes[1].set_title("EFA")
 
+        # Honestly no idea what's going on with the axis direction and labels
+        # and whatever, but this seems to look right
+        axes[1].set_xlim((x for x in axes[0].get_xlim()[::-1]))
+
         for axis in axes:
             axis.axis("off")
+            axis.legend(loc="upper right")
 
         fig.suptitle(path.stem)
         fig.tight_layout()

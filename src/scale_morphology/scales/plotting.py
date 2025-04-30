@@ -20,5 +20,4 @@ def plot_efa(
 
     x, y = efa.coeffs2points(coeffs, locus[::-1])
 
-    # For some reason it comes out flipped
-    axis.plot(-y, x, **plot_kw)
+    axis.plot(y, x, **plot_kw)
