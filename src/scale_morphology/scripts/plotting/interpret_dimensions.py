@@ -7,6 +7,7 @@ import argparse
 
 import numpy as np
 import matplotlib.pyplot as plt
+from sklearn.decomposition import PCA
 from skimage.measure import label, regionprops
 from matplotlib.colors import SymLogNorm
 
@@ -156,6 +157,22 @@ def _aspect_ratio_plot(
     plt.close(fig)
 
 
+def _plot_pca_importance(coeffs: np.ndarray, nan_rows: np.ndarray) -> None:
+    """
+    Plot the importance of each dimension
+    """
+    _, pca = dim_reduction.pca(coeffs, flatten=True, drop=nan_rows, n_components=15)
+
+    fig, axis = plt.subplots()
+    axis.bar(range(15), pca.explained_variance_ratio_)
+    axis.bar(range(2), pca.explained_variance_ratio_[:2], color="red")
+    axis.set_xlabel("Principal Component")
+    axis.set_ylabel("Variance Explained")
+
+    fig.savefig(OUT_DIR / "importance.png")
+    plt.close(fig)
+
+
 def main(*, compression_method: str, dim_reduction_method: str, progress: bool) -> None:
     """
     Read the coefficients and segmentations from disk
@@ -166,6 +183,9 @@ def main(*, compression_method: str, dim_reduction_method: str, progress: bool) 
 
     # If any are nan we want to drop them from the plots
     nan_rows = dim_reduction.nan_scale_mask(coeffs)
+
+    # Plot feature importance with lots of rows
+    _plot_pca_importance(coeffs, nan_rows)
 
     # Perform the dimensionality reduction
     red_method = dim_reduction.get_dim_reduction(dim_reduction_method)

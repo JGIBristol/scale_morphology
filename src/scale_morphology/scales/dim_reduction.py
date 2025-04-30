@@ -40,7 +40,11 @@ def _flatten(coeffs: np.typing.NDArray) -> np.typing.NDArray:
 
 
 def pca(
-    coeffs: np.typing.NDArray, *, flatten: bool = False, drop: np.ndarray | None = None
+    coeffs: np.typing.NDArray,
+    *,
+    flatten: bool = False,
+    drop: np.ndarray | None = None,
+    n_components: int = 2,
 ) -> tuple[np.typing.NDArray, PCA]:
     """
     Perform PCA on the input data
@@ -52,6 +56,7 @@ def pca(
                    In the latter case the input should be flattened.
     :param flatten: Whether to flatten the output
     :param drop: 1d N-length boolean mask of scales to drop
+    :param n_components: The number of components to keep
 
     :return: The transformed data, as a numpy array of shape (N, 2)
     :return: the PCA object
@@ -66,7 +71,7 @@ def pca(
     if coeffs.ndim != 2:
         raise ValueError("Coeffs should be 2D; 3D input should be flattened")
 
-    pca = PCA(n_components=2)
+    pca = PCA(n_components=n_components)
     return np.ascontiguousarray(pca.fit_transform(coeffs)), pca
 
 
