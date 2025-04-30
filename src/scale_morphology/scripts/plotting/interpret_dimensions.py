@@ -28,6 +28,8 @@ def _size_plot(reduced_coeffs: np.ndarray, scale_images: list[np.ndarray]) -> No
     fig, axes = plt.subplots(1, 2, figsize=(12, 6), sharex=True)
     for axis, dim in zip(axes, reduced_coeffs.T):
         axis.scatter(sizes, dim)
+        axis.set_xlabel("Scale size /px")
+        axis.set_ylabel("PC value")
 
     fig.supxlabel("Scale size /px")
     axes[0].set_title("PC1")
@@ -147,6 +149,8 @@ def _aspect_ratio_plot(
     fig, axes = plt.subplots(1, 2, figsize=(12, 6), sharex=True)
     for axis, dim in zip(axes, reduced_coeffs.T):
         axis.scatter(aspect_ratios, dim)
+        axis.set_xlabel("Scale aspect ratio")
+        axis.set_ylabel("PC value")
 
     fig.supxlabel("Scale aspect ratio")
     axes[0].set_title("PC1")
