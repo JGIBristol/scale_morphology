@@ -2,29 +2,34 @@
 Plot the scales and the edges used for EFA
 """
 
+import argparse
+
 from tqdm import tqdm
 import matplotlib.pyplot as plt
 
 from scale_morphology.scales import read, plotting, efa
 
 
-def main():
+def main(n_imgs: int | None):
     """
     Read in the images and EFA coefficients, plot the scale and the EFA approximation
     Plot also the edges discovered by the edgefinding algorithm
 
     """
-    out_dir = read.output_dir()
+    out_dir = read.output_dir() / "efa_edges"
     if not out_dir.exists():
         out_dir.mkdir(parents=True)
 
     paths = read.greyscale_paths()
     images = read.greyscale_images(progress=True)
 
+    paths = paths[:n_imgs]
+    images = images[:n_imgs]
+
     coeffs = read.read_coeffs("efa")
 
     for path, image, coeff in zip(tqdm(paths), images, coeffs):
-        fig, axes = plt.subplots(1, 2, figsize=(8, 4), sharex=True, sharey=True)
+        fig, axes = plt.subplots(1, 2, figsize=(8, 4))
 
         # Show image
         axes[0].imshow(image.T, cmap="gray", origin="upper")
@@ -48,6 +53,9 @@ def main():
         axes[0].set_title("Original Image")
         axes[1].set_title("EFA")
 
+        for axis in axes:
+            axis.axis("off")
+
         fig.suptitle(path.stem)
         fig.tight_layout()
 
@@ -57,4 +65,7 @@ def main():
 
 
 if __name__ == "__main__":
-    main()
+    parser = argparse.ArgumentParser(__file__.__doc__)
+    parser.add_argument("--n_imgs", type=int, default=None, help="n imgs to process")
+
+    main(**vars(parser.parse_args()))
