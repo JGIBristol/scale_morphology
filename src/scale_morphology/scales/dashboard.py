@@ -14,6 +14,7 @@ import numpy as np
 import pandas as pd
 from PIL import Image
 from skimage.transform import resize
+from scipy.spatial import ConvexHull
 
 from bokeh.plotting import figure, save
 from bokeh.models import ColumnDataSource, HoverTool, CategoricalColorMapper
@@ -192,6 +193,34 @@ def write_dashboard(
         color={"field": "colour", "transform": mapper},
         **kw,
     )
+
+    if colour_coding:
+        # Get unique colors
+        unique_colors = np.unique(df["colour"])
+
+        # For each color group, draw a convex hull
+        for i, color_value in enumerate(unique_colors):
+            group_points = df[df["colour"] == color_value][["x", "y"]].values
+
+            # Need at least 3 points for a convex hull
+            if len(group_points) >= 3:
+                hull = ConvexHull(group_points)
+                vertices = group_points[hull.vertices]
+
+                # Close the polygon by adding the first point at the end
+                vertices = np.vstack([vertices, vertices[0]])
+
+                hull_color = mapper.palette[i % len(mapper.palette)]
+                fig.patch(
+                    x=vertices[:, 0],
+                    y=vertices[:, 1],
+                    alpha=0.2,
+                    line_color=hull_color,
+                    line_width=2,
+                    fill_color=hull_color,
+                )
+            else:
+                print(f"Not enough points to create a convex hull for {color_value} (got {len(group_points)})")
 
     save(
         fig,
