@@ -13,7 +13,13 @@ from scale_morphology.scales import read, dim_reduction
 from scale_morphology.scales import dashboard
 
 
-def main(*, compression_method: str, dim_reduction_method: str, progress: bool) -> None:
+def main(
+    *,
+    compression_method: str,
+    dim_reduction_method: str,
+    progress: bool,
+    colour_coding: None | str,
+) -> None:
     """
     Read in the specified coefficients then create the dashboard
     """
@@ -47,6 +53,7 @@ def main(*, compression_method: str, dim_reduction_method: str, progress: bool) 
             f"PC2 ({100 * fitter.explained_variance_ratio_[1]:.3f}% variance)"
         )
 
+    plot_kw["colour_coding"] = colour_coding
     dashboard.write_dashboard(
         reduced,
         f"{out_dir / '_'.join([compression_method, dim_reduction_method])}.html",
@@ -77,6 +84,13 @@ def cli():
         "--progress",
         action="store_true",
         help="Show progress bars",
+    )
+    parser.add_argument(
+        "--colour_coding",
+        type=str,
+        help="The method used to color code the images",
+        default=None,
+        choices={"regen", "mutation"},
     )
 
     main(**vars(parser.parse_args()))

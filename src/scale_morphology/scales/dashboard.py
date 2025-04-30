@@ -5,6 +5,7 @@ reduced-dimension space.
 
 """
 
+import re
 import base64
 import pathlib
 from io import BytesIO
@@ -41,8 +42,28 @@ def embeddable_image(image: np.ndarray, *, thumbnail_size: int = (64, 64)) -> st
     return f"data:image/png;base64,{base64.b64encode(buffered.getvalue()).decode()}"
 
 
+def extract_mutation(name: str):
+    """
+    Extract mutation type from filename using regex pattern matching
+    """
+    pattern = r"^((?:SPP1|SOST)_(?:HOM|WT(?:\sSIB)?))|(?:(OSX)[_-](m[CX]H))"
+
+    match = re.match(pattern, name)
+    if match:
+        if match.group(1):  # SPP1_HOM or SOST_HOM or SOST_WT
+            return match.group(1)
+        else:  # OSX marker type
+            return f"{match.group(2)}_{match.group(3)}"
+
+    raise ValueError(f"No mutation found in {name}")
+
+
 def dashboard_df(
-    coeffs: np.ndarray, *, progress: bool, drop: np.ndarray
+    coeffs: np.ndarray,
+    *,
+    progress: bool,
+    drop: np.ndarray,
+    colour_coding: str | None = None,
 ) -> pd.DataFrame:
     """
     Build a dataframe holding the information we need to create the dashboard.
@@ -64,6 +85,19 @@ def dashboard_df(
     # Get the image names
     names = [path.name.replace("_rois.tif", "") for path in paths]
 
+    # Create a boolean array based on some criteria
+    if colour_coding:
+        match colour_coding:
+            case "regen":
+                colour = ["REGEN" in name for name in names]
+            case "mutation":
+                colour = [extract_mutation(name) for name in names]
+            case _:
+                raise ValueError(f"Unknown colour coding criterion: {colour_coding}")
+    else:
+        # Just make everything the same colour
+        colour = np.zeros(len(coeffs), dtype=bool)
+
     # Convert images to strings
     images = [
         embeddable_image(image)
@@ -75,6 +109,7 @@ def dashboard_df(
 
     df["image"] = images
     df["filename"] = names
+    df["colour"] = colour
 
     return df
 
@@ -83,6 +118,7 @@ def write_dashboard(
     coeffs: np.ndarray,
     filename: str | pathlib.Path,
     *,
+    colour_coding: str | None,
     progress: bool = False,
     drop: np.ndarray | None = None,
     **fig_kw,
@@ -92,6 +128,7 @@ def write_dashboard(
 
     :param coeffs: the PCA coefficients
     :param filename: the HTML file to save the dashboard
+    :param colour_coding: criterion to use for colour coding, if specified
     :param progress: whether to show progress bars
     :param drop: 1d N-length boolean mask of scales to exclude from the dashboard
 
@@ -107,7 +144,7 @@ def write_dashboard(
         filename = filename + ".html"
 
     # Build the dataframe
-    df = dashboard_df(coeffs, progress=progress, drop=drop)
+    df = dashboard_df(coeffs, progress=progress, drop=drop, colour_coding=colour_coding)
 
     # Create the figure
     datasource = ColumnDataSource(df)
