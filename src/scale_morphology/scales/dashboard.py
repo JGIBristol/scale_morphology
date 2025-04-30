@@ -16,7 +16,7 @@ from PIL import Image
 from skimage.transform import resize
 
 from bokeh.plotting import figure, save
-from bokeh.models import ColumnDataSource, HoverTool
+from bokeh.models import ColumnDataSource, HoverTool, CategoricalColorMapper
 from bokeh.resources import INLINE
 
 from scale_morphology.scales import errors, read
@@ -146,6 +146,10 @@ def write_dashboard(
     # Build the dataframe
     df = dashboard_df(coeffs, progress=progress, drop=drop, colour_coding=colour_coding)
 
+    # Create a mapping for colours
+    factors = np.unique(df["colour"])
+    mapper = CategoricalColorMapper(factors=factors, palette=f"Category10_{len(factors)}")
+
     # Create the figure
     datasource = ColumnDataSource(df)
     fig = figure(
@@ -178,7 +182,8 @@ def write_dashboard(
         y="y",
         source=datasource,
         size=4,
-        color="black",
+        color={"field": "colour", "transform": mapper},
+        legend_field="colour",
     )
 
     save(
