@@ -167,11 +167,27 @@ def _plot_pca_importance(coeffs: np.ndarray, nan_rows: np.ndarray) -> None:
     """
     _, pca = dim_reduction.pca(coeffs, flatten=True, drop=nan_rows, n_components=15)
 
+    variance = pca.explained_variance_ratio_ * 100
+    cumulative = np.cumsum(variance)
+
     fig, axis = plt.subplots()
-    axis.bar(range(15), pca.explained_variance_ratio_)
-    axis.bar(range(2), pca.explained_variance_ratio_[:2], color="red")
+    ymax = 100
+    axis.bar(range(15), variance, label="PC Variance Explained")
+
+    # Plot top 2 in red
+    axis.bar(range(2), variance[:2], color="red", label="Top 2 PCs")
+    axis.set_ylim(0, ymax)
+
     axis.set_xlabel("Principal Component")
-    axis.set_ylabel("Variance Explained")
+    axis.set_ylabel("Variance Explained /%")
+
+    # Plot cumulative variance
+    axis.plot(range(15), cumulative, color="black", linestyle="--", label="Cumulative")
+    axis.set_ylabel("Cumulative Variance Explained /%")
+    axis.set_ylim(0, ymax)
+    axis.legend()
+
+    fig.tight_layout()
 
     fig.savefig(OUT_DIR / "importance.png")
     plt.close(fig)
