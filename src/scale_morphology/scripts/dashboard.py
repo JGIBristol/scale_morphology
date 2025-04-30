@@ -55,8 +55,7 @@ def main(
 
     plot_kw["colour_coding"] = colour_coding
 
-    # hacky backspace
-    filename = f"{out_dir / '_'.join([compression_method, dim_reduction_method])}_{colour_coding or '\b'}.html"
+    filename = f"{out_dir / '_'.join([compression_method, dim_reduction_method] + ([colour_coding] if colour_coding else []))}.html"
     dashboard.write_dashboard(
         reduced,
         filename,

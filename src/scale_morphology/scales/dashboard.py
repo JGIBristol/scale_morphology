@@ -96,7 +96,7 @@ def dashboard_df(
                 raise ValueError(f"Unknown colour coding criterion: {colour_coding}")
     else:
         # Just make everything the same colour
-        colour = np.zeros(len(coeffs), dtype=bool)
+        colour = ["" for _ in names]
 
     # Convert images to strings
     images = [
@@ -148,7 +148,10 @@ def write_dashboard(
 
     # Create a mapping for colours
     factors = np.unique(df["colour"])
-    mapper = CategoricalColorMapper(factors=factors, palette=f"Category10_{len(factors)}")
+    mapper = CategoricalColorMapper(
+        factors=factors,
+        palette=f"Category10_{len(factors)}" if colour_coding else ["#000000"],
+    )
 
     # Create the figure
     datasource = ColumnDataSource(df)
@@ -177,13 +180,16 @@ def write_dashboard(
         )
     )
 
+    kw = {}
+    if colour_coding:
+        kw["legend_field"] = "colour"
     fig.scatter(
         x="x",
         y="y",
         source=datasource,
         size=4,
         color={"field": "colour", "transform": mapper},
-        legend_field="colour",
+        **kw,
     )
 
     save(
