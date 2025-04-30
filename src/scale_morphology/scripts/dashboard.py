@@ -7,8 +7,6 @@ of the EFA, autoencoder, or VAE coefficients.
 import warnings
 import argparse
 
-import numpy as np
-
 from scale_morphology.scales import read, dim_reduction
 from scale_morphology.scales import dashboard
 

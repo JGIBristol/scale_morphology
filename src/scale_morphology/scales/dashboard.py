@@ -89,7 +89,7 @@ def dashboard_df(
     if colour_coding:
         match colour_coding:
             case "regen":
-                colour = ["REGEN" in name for name in names]
+                colour = ["REGEN" if "REGEN" in name else "not regen" for name in names]
             case "mutation":
                 colour = [extract_mutation(name) for name in names]
             case _:
@@ -150,7 +150,8 @@ def write_dashboard(
     factors = np.unique(df["colour"])
     mapper = CategoricalColorMapper(
         factors=factors,
-        palette=f"Category10_{len(factors)}" if colour_coding else ["#000000"],
+        # minimum number of colours in our cmap is 3
+        palette=f"Category10_{max(len(factors), 3)}" if colour_coding else ["#000000"],
     )
 
     # Create the figure
