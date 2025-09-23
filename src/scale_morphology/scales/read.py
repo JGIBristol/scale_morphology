@@ -10,6 +10,14 @@ import warnings
 
 import numpy as np
 from tqdm import tqdm
+from PIL import Image
+from readlif.reader import LifFile
+
+
+class LIFError(Exception):
+    """
+    Something went wrong reading a LIF file
+    """
 
 
 def _thisfile() -> pathlib.Path:
@@ -202,3 +210,27 @@ def read_coeffs(compression_method: str) -> np.ndarray:
 
     """
     return np.load(coeff_path(compression_method))
+
+
+def read_2d_lif(lif_path: pathlib.Path) -> list[Image]:
+    """
+    Read all the images from a LIF file, assuming the contents
+    contain only one time-point and mosaic image.
+
+    :param lif_path: path to the LIF file.
+
+    :return: a list of the images, as PIL Images.
+    :raises LIFError: if the LIF files do not conform to the above assumptions.
+    """
+    lif_file = LifFile(lif_path)
+    all_images = [image for image in tqdm(lif_file.get_iter_image())]
+
+    for i, image in enumerate(all_images):
+        if image.channels != 3 or image.nz != 1 or image.nt != 1 or image.n_mosaic != 1:
+            raise LIFError(
+                "Expected RGB image with 1 timepoint and 1 z-img; got"
+                f"\t{image.channels=}, {image.nz=}, {image.nt=}, {image.n_mosaic=} for image {i}"
+                f"in {lif_path}"
+            )
+
+    return [image.get_frame(z=0, t=0, m=0)]
