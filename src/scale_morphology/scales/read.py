@@ -233,4 +233,4 @@ def read_2d_lif(lif_path: pathlib.Path) -> list[Image]:
                 f"in {lif_path}"
             )
 
-    return [image.get_frame(z=0, t=0, m=0)]
+    return [image.get_frame(z=0, t=0, m=0) for image in all_images]
