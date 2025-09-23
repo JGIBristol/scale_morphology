@@ -169,14 +169,17 @@ def _plot_pca_importance(coeffs: np.ndarray, nan_rows: np.ndarray) -> None:
     _, pca = dim_reduction.pca(coeffs, flatten=True, drop=nan_rows, n_components=15)
 
     # Plot the principal axes in feature space
-    fig, axes = plt.subplots(3, 5, figsize=(25, 15), sharex=True, sharey=True)
+    fig, axes = plt.subplots(3, 5, figsize=(15, 6), sharey=True)
     for x, axis in zip(pca.components_, axes.flat):
+        x = x[:12]
         axis.bar(range(len(x)), x)
+        axis.set_xticks(range(len(x)))
 
     fig.supxlabel("Feature")
     fig.supylabel("Principal Component Coefficient")
 
     fig.savefig(OUT_DIR / "pca_components.png")
+    plt.close(fig)
 
     variance = pca.explained_variance_ratio_ * 100
 
