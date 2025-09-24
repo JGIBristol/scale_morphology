@@ -12,7 +12,6 @@ import numpy as np
 from tqdm import tqdm
 from PIL import Image
 from readlif.reader import LifFile
-from napari_bioformats import napari_get_reader
 
 
 class LIFError(Exception):
@@ -213,21 +212,26 @@ def read_coeffs(compression_method: str) -> np.ndarray:
     return np.load(coeff_path(compression_method))
 
 
-def read_2d_lif(lif_path: pathlib.Path) -> list[Image]:
+def read_lif(lif_path: pathlib.Path) -> list[tuple[str, np.ndarray]]:
     """
-    Read all the images from a LIF file
-
-    :param lif_path: path to the LIF file.
+    Read all images from a LIF file using readlif.
 
     :return: a list of the images, as PIL Images.
     """
-    reader = napari_get_reader(str(lif_path))
+    lif = LifFile(str(lif_path))
+    images = []
 
-    layer_data = reader(path)
-    arrays, mdata = zip(layer_data)
+    for image in lif.get_iter_image():
+        print(dir(image))
+        name = image.name
 
-    # Shuffle the array around so that we put the channel dimension last,
-    # as we'd expect for an RGB image
-    print(mdata)
+        arr = [image.get_frame(c=i)  for i in range(3)]
+        arr = np.array(arr)
 
-    return arrays
+        arr = np.squeeze(arr)
+        arr = np.moveaxis(arr, 0, -1)
+
+        images.append((name, arr))
+
+    return images
+
