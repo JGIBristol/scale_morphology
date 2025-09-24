@@ -13,12 +13,6 @@ import numpy as np
 from tqdm import tqdm
 
 
-class LIFError(Exception):
-    """
-    Something went wrong reading a LIF file
-    """
-
-
 def _thisfile() -> pathlib.Path:
     """
     Get the path of this file.
@@ -223,4 +217,4 @@ def read_lif(lif_path: pathlib.Path) -> list[tuple[str, np.ndarray]]:
     retval = []
     with liffile.LifFile(lif_path) as lif:
         names = [image.name for image in lif.images]
-        return [(name, lif.images[name].asarray()) for name in names]
+        return [(name, lif.images[name].asarray()) for name in tqdm(names)]
