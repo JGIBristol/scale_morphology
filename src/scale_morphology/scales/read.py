@@ -8,10 +8,9 @@ import imageio
 import pathlib
 import warnings
 
+import liffile
 import numpy as np
 from tqdm import tqdm
-from PIL import Image
-from readlif.reader import LifFile
 
 
 class LIFError(Exception):
@@ -214,24 +213,14 @@ def read_coeffs(compression_method: str) -> np.ndarray:
 
 def read_lif(lif_path: pathlib.Path) -> list[tuple[str, np.ndarray]]:
     """
-    Read all images from a LIF file using readlif.
+    Read all images from a LIF file.
 
-    :return: a list of the images, as PIL Images.
+    :param lif_path: path to the file
+    :returns: list of (name, data) arrays.
+              Data is (H, W, 3) shaped (at least for my data).
+
     """
-    lif = LifFile(str(lif_path))
-    images = []
-
-    for image in lif.get_iter_image():
-        print(dir(image))
-        name = image.name
-
-        arr = [image.get_frame(c=i)  for i in range(3)]
-        arr = np.array(arr)
-
-        arr = np.squeeze(arr)
-        arr = np.moveaxis(arr, 0, -1)
-
-        images.append((name, arr))
-
-    return images
-
+    retval = []
+    with liffile.LifFile(lif_path) as lif:
+        names = [image.name for image in lif.images]
+        return [(name, lif.images[name].asarray()) for name in names]
