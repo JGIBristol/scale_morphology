@@ -100,7 +100,10 @@ def coefficients(binary_img: np.ndarray, n_points: int, order: int) -> None:
 
     """
     if measure.euler_number(binary_img) != 1:
-        raise errors.HolesError("Image must contain a single object")
+        raise errors.HolesError(
+            "Image must contain a single object; got"
+            f"{measure.euler_number(binary_img)}"
+        )
 
     x, y = points_around_edge(binary_img, n_points)
 
