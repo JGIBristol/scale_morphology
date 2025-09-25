@@ -31,6 +31,7 @@ dependencies = [
     "liffile>=2025.5.10",
     "napari>=0.6.4",
     "pyqt5>=5.15.11",
+    "nbdime>=4.0.2",
 ]
 
 [tool.pytest.ini_options]
