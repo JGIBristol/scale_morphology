@@ -7,7 +7,13 @@ import numpy as np
 from scipy import ndimage
 from skimage.color import rgb2gray
 from skimage.filters import threshold_otsu
-from skimage.morphology import binary_opening, disk, erosion, reconstruction
+from skimage.morphology import (
+    binary_opening,
+    disk,
+    erosion,
+    reconstruction,
+    binary_closing,
+)
 
 
 def _open_by_reconstruction(mask, radius):
@@ -54,4 +60,9 @@ def classical_segmentation(img: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
 
     mask = _open_by_reconstruction(mask, 20)
     mask = _largest_connected_component(mask)
+
+    # Closing then opening to get rid of weird bits
+    elem = np.ones((25, 25))
+    mask = binary_closing(binary_opening(mask, footprint=elem), footprint=elem)
+
     return ndimage.binary_fill_holes(mask, structure=np.ones((3, 3)))
