@@ -34,7 +34,6 @@ def _largest_connected_component(binary_array):
     sizes[0] = 0
 
     retval = labelled == np.argmax(sizes)
-    print(f"{np.sum(binary_array) - np.sum(retval)}", end=" ")
     return retval
 
 
@@ -51,8 +50,8 @@ def classical_segmentation(img: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
     img = rgb2gray(img)
     threshold = threshold_otsu(img)
 
-    mask = img < mask
+    mask = img < threshold
 
     mask = _open_by_reconstruction(mask, 20)
     mask = _largest_connected_component(mask)
-    return ndimage.binary_fill_holes(i, structure=np.ones(3, 3))
+    return ndimage.binary_fill_holes(mask, structure=np.ones((3, 3)))
