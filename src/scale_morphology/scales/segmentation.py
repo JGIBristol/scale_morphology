@@ -43,6 +43,10 @@ def _largest_connected_component(binary_array):
     return retval
 
 
+def largest_connected_component(binary_array):
+    return _largest_connected_component(binary_array)
+
+
 def classical_segmentation(img: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
     """
     Attempt to segment the scale out using a classical computer vision pipeline-
