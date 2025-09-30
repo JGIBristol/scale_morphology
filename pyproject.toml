@@ -32,6 +32,8 @@ dependencies = [
     "napari>=0.6.4",
     "pyqt5>=5.15.11",
     "nbdime>=4.0.2",
+    "segment-anything>=1.0",
+    "opencv-python>=4.12.0.88",
 ]
 
 [tool.pytest.ini_options]
