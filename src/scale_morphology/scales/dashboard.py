@@ -6,6 +6,7 @@ reduced-dimension space.
 """
 
 import re
+import sys
 import base64
 import pathlib
 from io import BytesIO
@@ -17,10 +18,19 @@ from skimage.transform import resize
 from scipy.spatial import ConvexHull
 
 from bokeh.plotting import figure, save
-from bokeh.models import ColumnDataSource, HoverTool, CategoricalColorMapper
+from bokeh.models import (
+    ColumnDataSource,
+    HoverTool,
+    CategoricalColorMapper,
+    GlyphRenderer,
+)
 from bokeh.resources import INLINE
 
 from scale_morphology.scales import errors, read
+
+
+class HullError(Exception):
+    """Can't draw a convex hull around these points"""
 
 
 def embeddable_image(image: np.ndarray, *, thumbnail_size: int = (64, 64)) -> str:
@@ -59,12 +69,11 @@ def extract_mutation(name: str):
     raise ValueError(f"No mutation found in {name}")
 
 
-def dashboard_df(
+def _dashboard_df(
     coeffs: np.ndarray,
-    *,
-    progress: bool,
-    drop: np.ndarray,
-    colour_coding: str | None = None,
+    images: np.ndarray,
+    names: list[str],
+    colour_coding: np.ndarray,
 ) -> pd.DataFrame:
     """
     Build a dataframe holding the information we need to create the dashboard.
@@ -72,159 +81,158 @@ def dashboard_df(
     filename.
 
     """
-    # Get greyscale image paths
-    # Convert to a np array so we can use the mask for indexing
-    paths = np.array(read.greyscale_paths())[~drop]
-
-    # Check that we have the right number of coeffs
-    if len(coeffs) != len(paths):
-        raise ValueError(
-            "Number of images and PCA coefficients don't match:"
-            f"{len(coeffs)} vs {len(paths)}"
-        )
-
-    # Get the image names
-    names = [path.name.replace("_rois.tif", "") for path in paths]
-
-    # Create a boolean array based on some criteria
-    if colour_coding:
-        match colour_coding:
-            case "regen":
-                colour = ["REGEN" if "REGEN" in name else "not regen" for name in names]
-            case "mutation":
-                colour = [extract_mutation(name) for name in names]
-            case _:
-                raise ValueError(f"Unknown colour coding criterion: {colour_coding}")
-    else:
-        # Just make everything the same colour
-        colour = ["" for _ in names]
-
     # Convert images to strings
-    images = [
-        embeddable_image(image)
-        for image in np.array(read.greyscale_images(progress=progress))[~drop]
-    ]
+    images = [embeddable_image(image) for image in images]
 
     # Build the dataframe
     df = pd.DataFrame(coeffs, columns=["x", "y"])
 
     df["image"] = images
-    df["filename"] = names
-    df["colour"] = colour
+    df["names"] = names
+    df["colour"] = colour_coding
 
     return df
 
 
-def write_dashboard(
-    coeffs: np.ndarray,
-    filename: str | pathlib.Path,
-    *,
-    colour_coding: str | None,
-    progress: bool = False,
-    drop: np.ndarray | None = None,
-    **fig_kw,
-) -> None:
+def _dashboard_figure(
+    df, colour_mapper, colour_coding, title
+) -> tuple[figure, GlyphRenderer]:
     """
-    Create a dashboard to visualise the PCA of the EFA coefficients
-
-    :param coeffs: the PCA coefficients
-    :param filename: the HTML file to save the dashboard
-    :param colour_coding: criterion to use for colour coding, if specified
-    :param progress: whether to show progress bars
-    :param drop: 1d N-length boolean mask of scales to exclude from the dashboard
-
+    Create the dashboard figure - plot the points on it
     """
-    if not coeffs.shape[1] == 2:
-        raise ValueError("Dim reduced co-ords should be 2D")
-    if drop is None:
-        drop = np.zeros(coeffs.shape[0], dtype=bool)
-
-    if isinstance(filename, pathlib.Path):
-        filename = str(filename)
-    if not filename.endswith(".html"):
-        filename = filename + ".html"
-
-    # Build the dataframe
-    df = dashboard_df(coeffs, progress=progress, drop=drop, colour_coding=colour_coding)
-
     # Create a mapping for colours
-    factors = np.unique(df["colour"])
-    mapper = CategoricalColorMapper(
-        factors=factors,
-        # minimum number of colours in our cmap is 3
-        palette=f"Category10_{max(len(factors), 3)}" if colour_coding else ["#000000"],
-    )
+    unique_colours = np.unique(colour_coding)
 
     # Create the figure
     datasource = ColumnDataSource(df)
     fig = figure(
-        title="Dimension-reduced Scale Dataset",
+        title=title,
         width=800,
         height=800,
         tools="pan, wheel_zoom, box_zoom, reset",
-        **fig_kw,
     )
 
+    # Plot the scatter points
+    point_renderer = fig.scatter(
+        x="x",
+        y="y",
+        source=datasource,
+        size=4,
+        color={"field": "colour", "transform": colour_mapper},
+        legend_field="colour",
+    )
+
+    return fig, point_renderer
+
+
+def _plot_hull(
+    fig: figure,
+    df: pd.DataFrame,
+    colour_value: str,
+    mapper: CategoricalColorMapper,
+    i: int,
+):
+    """
+    Plot a convex hull around points of the given colour
+
+    :raises HullError: if we don't have enough points to plot a hull
+    """
+    group_points = df[df["colour"] == colour_value][["x", "y"]].values
+
+    # Need at least 3 points for a convex hull
+    if len(group_points) < 3:
+        raise HullError(
+            f"Not enough points to create a convex hull for {colour_value} (got {len(group_points)})"
+        )
+
+    hull = ConvexHull(group_points)
+    vertices = group_points[hull.vertices]
+
+    # Close the polygon by adding the first point at the end
+    vertices = np.vstack([vertices, vertices[0]])
+
+    hull_color = mapper.palette[i % len(mapper.palette)]
+    fig.patch(
+        x=vertices[:, 0],
+        y=vertices[:, 1],
+        alpha=0.2,
+        line_color=hull_color,
+        line_width=2,
+        fill_color=hull_color,
+    )
+
+
+def write_dashboard(
+    reduced_coeffs: np.ndarray,
+    images: np.ndarray,
+    colour_coding: np.ndarray,
+    names: list[str],
+    filename: str | pathlib.Path,
+    title: str,
+) -> None:
+    """
+    Create a dashboard to visualise a 2d projection of some co-ordinates.
+
+    Basically just a colour-coded 2d scatter plot, showing the point corresponding to each image
+    when you hover over it.
+
+    :param coeffs: the PCA coefficients
+    :param: images: images to embed in the dashboard
+    :param filename: path to save the HTML dashboard
+    :param colour_coding: array of unique labels for each datapoint
+    :param names: names of each scale, to be displayed in the dashboard
+    :param title: plot title
+
+    """
+    if not reduced_coeffs.shape[1] == 2:
+        raise ValueError("Dim reduced co-ords should be 2D")
+    if len(colour_coding) != reduced_coeffs.shape[0]:
+        raise ValueError(
+            f"coeffs + labels should be same length; got {reduced_coeffs.shape=} and {len(colour_coding)=}"
+        )
+
+    # Build the dataframe
+    df = _dashboard_df(reduced_coeffs, images, names, colour_coding)
+
+    # minimum number of colours in our cmap is 3
+    unique_colours = np.unique(colour_coding)
+    mapper = CategoricalColorMapper(
+        factors=unique_colours,
+        palette=(f"Category10_{max(len(unique_colours), 3)}"),
+    )
+
+    # Plot the figure
+    fig, point_renderer = _dashboard_figure(df, mapper, colour_coding, title)
+
+    # Enable showing the images on hover
     fig.add_tools(
         (
             HoverTool(
+                renderers=[point_renderer],
                 tooltips="""
 <div>
     <div>
         <img src="@image" style="float: left; margin: 5px 5px 5px 5px;">
     </div>
     <div>
-        <span style="font-size: 17px; font-weight: bold;">@filename</span>
+        <span style="font size: 14px; font-weight: bold;">@names</span>
     </div>
 </div>
-"""
+""",
             )
         )
     )
 
-    kw = {}
-    if colour_coding:
-        kw["legend_field"] = "colour"
-    fig.scatter(
-        x="x",
-        y="y",
-        source=datasource,
-        size=4,
-        color={"field": "colour", "transform": mapper},
-        **kw,
-    )
-
-    if colour_coding:
-        # Get unique colors
-        unique_colors = np.unique(df["colour"])
-
-        # For each color group, draw a convex hull
-        for i, color_value in enumerate(unique_colors):
-            group_points = df[df["colour"] == color_value][["x", "y"]].values
-
-            # Need at least 3 points for a convex hull
-            if len(group_points) >= 3:
-                hull = ConvexHull(group_points)
-                vertices = group_points[hull.vertices]
-
-                # Close the polygon by adding the first point at the end
-                vertices = np.vstack([vertices, vertices[0]])
-
-                hull_color = mapper.palette[i % len(mapper.palette)]
-                fig.patch(
-                    x=vertices[:, 0],
-                    y=vertices[:, 1],
-                    alpha=0.2,
-                    line_color=hull_color,
-                    line_width=2,
-                    fill_color=hull_color,
-                )
-            else:
-                print(f"Not enough points to create a convex hull for {color_value} (got {len(group_points)})")
+    # For each color group, draw a convex hull
+    for i, colour_value in enumerate(unique_colours):
+        try:
+            _plot_hull(fig, df, colour_value, mapper, i)
+        except HullError:
+            pass
 
     save(
         fig,
         filename=filename,
-        title=pathlib.Path(filename.replace(".html", "")).name,
+        title=filename,
         resources=INLINE,
     )

@@ -97,4 +97,8 @@ def cli():
 
 
 if __name__ == "__main__":
+    raise NotImplementedError(
+        """This script is now outdated since I changed the dashboard API.
+        Sorry. Maybe should just delete it"""
+    )
     cli()
