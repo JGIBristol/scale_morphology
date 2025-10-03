@@ -100,7 +100,10 @@ def coefficients(binary_img: np.ndarray, n_points: int, order: int) -> None:
 
     """
     if measure.euler_number(binary_img) != 1:
-        raise errors.HolesError("Image must contain a single object")
+        raise errors.HolesError(
+            "Image must contain a single object; got"
+            f"{measure.euler_number(binary_img)}"
+        )
 
     x, y = points_around_edge(binary_img, n_points)
 
@@ -126,10 +129,10 @@ def coeffs2points(coeffs, locus, *, n_pts=300):
 
     # Calculate x and y coordinates using matrix multiplication
     xt = locus[0] + np.sum(
-        coeffs[:, 0:1] * cos_terms + coeffs[:, 1:2] * sin_terms, axis=0
-    )
-    yt = locus[1] + np.sum(
         coeffs[:, 2:3] * cos_terms + coeffs[:, 3:4] * sin_terms, axis=0
+    )
+    yt = locus[1] - np.sum(
+        coeffs[:, 0:1] * cos_terms + coeffs[:, 1:2] * sin_terms, axis=0
     )
 
     return xt, yt

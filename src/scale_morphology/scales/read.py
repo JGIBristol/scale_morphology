@@ -8,6 +8,7 @@ import imageio
 import pathlib
 import warnings
 
+import liffile
 import numpy as np
 from tqdm import tqdm
 
@@ -202,3 +203,18 @@ def read_coeffs(compression_method: str) -> np.ndarray:
 
     """
     return np.load(coeff_path(compression_method))
+
+
+def read_lif(lif_path: pathlib.Path) -> list[tuple[str, np.ndarray]]:
+    """
+    Read all images from a LIF file.
+
+    :param lif_path: path to the file
+    :returns: list of (name, data) arrays.
+              Data is (H, W, 3) shaped (at least for my data).
+
+    """
+    retval = []
+    with liffile.LifFile(lif_path) as lif:
+        names = [image.name for image in lif.images]
+        return [(name, lif.images[name].asarray()) for name in tqdm(names)]

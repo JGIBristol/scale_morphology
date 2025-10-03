@@ -25,6 +25,15 @@ dependencies = [
     "black>=25.1.0",
     "bokeh>=3.7.0",
     "pandas>=2.2.3",
+    "ipykernel>=6.30.1",
+    "readlif>=0.6.6",
+    "ipywidgets>=8.1.7",
+    "liffile>=2025.5.10",
+    "napari>=0.6.4",
+    "pyqt5>=5.15.11",
+    "nbdime>=4.0.2",
+    "segment-anything>=1.0",
+    "opencv-python>=4.12.0.88",
 ]
 
 [tool.pytest.ini_options]

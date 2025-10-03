@@ -9,15 +9,17 @@ from . import efa
 
 
 def plot_efa(
-    scale: np.ndarray, coeffs: np.ndarray, *, axis: plt.Axes, **plot_kw
+    centroid: tuple[float, float], coeffs: np.ndarray, *, axis: plt.Axes, **plot_kw
 ) -> None:
     """
     Plot the EFA of a scale
 
+    :param centroid: centre of the scale; can be calculataed from a mask using
+                     `[np.average(x) for x in np.where(mask > 0)]`
+    :param coeffs: EFD coefficients [[a, b, c, d]_1, [a, b, c, d]_2, ...]
+    :param axis: axis to plot on
+    :param plot_kw: further keywords to be passed to the plot fcn (e.g. color, linestyle)
+
     """
-    # Find the centre of the scale
-    locus = [np.average(x) for x in np.where(scale > 0)]
-
-    x, y = efa.coeffs2points(coeffs, locus[::-1])
-
-    axis.plot(y, x, **plot_kw)
+    x, y = efa.coeffs2points(coeffs, centroid)
+    axis.plot(x, y, **plot_kw)
