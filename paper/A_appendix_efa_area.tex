@@ -89,7 +89,8 @@ $a$ and $b$ encode the ellipse in the $x$-direction and $c$ and $d$ for the $y$-
 Eq.~\ref{eqn:EFD_area_sums} looks like the magnitude of a cross-product; geometrically, this magnitude tells us about
 the area of a parallelogram defined by the vectors in the cross-product. It is a similar result to Parseval's Theorem, which
 states that the energy of a signal is just the sum of the Fourier coefficients squared, but we have just moved to 2D and replaced
-energy with area.
+energy with area. It's also interesting to note that, if we plug the definitions of our coefficients in terms of the sampled points back in to Eq.~\ref{eqn:EFD_area_sums},
+we get the shoelace formula for the area of a polygon.
 \bigbreak
 This is useful as it means we can rapidly find the area of different shapes represented by truncated series of EFDs,
 which we want to do to find how many harmonics are required to make a good approximatioin of a shape.
