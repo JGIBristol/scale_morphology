@@ -1,0 +1,65 @@
+\documentclass[11pt,a4paper,notitlepage]{article}
+
+\usepackage[utf8]{inputenc}
+\usepackage{amsmath}
+\usepackage{graphicx}
+\usepackage{mathtools}
+\usepackage{hyperref}
+\usepackage{natbib}
+
+\author{Richard Lane, Rabia Sevil, Chrissy Hammond}
+\title{
+    paper title
+}
+
+\begin{document}
+\maketitle
+
+% To make the building work while I don't have any references
+\cite{example2023}
+
+\section{Methods}
+\subsection{Materials}
+\begin{itemize}
+	\item Stuff that happened in the lab
+	\item Which fish we used
+	\item How many we ended up with
+	\item Flowchart of fishes
+\end{itemize}
+
+\subsection{Elliptic Fourier Analysis}
+\subsubsection{Segmentation}
+\begin{itemize}
+	\item Pipeline, maybe with a flowchart
+	\item Classical steps
+	\item SAM steps
+	\item Manual cleaning
+\end{itemize}
+
+\subsubsection{Elliptic Fourier Decomposition}
+\begin{itemize}
+	\item Maths
+	\item Citation for code
+	\item Maybe a diagram showing the pipeline
+	\item How did I choose how many points to use - power spectrum? Haussdorf distance? area using shoelace formula?
+    \item How did I choose how many harmonics to use - Hausdorff distance?
+    \item Mention that EFA is useful because it regularises! There might be rough edges, EFA smoothes these sensibly...
+\end{itemize}
+
+\subsubsection{Dimensionality Reduction + Interpreting Axes}
+\begin{itemize}
+	\item PCA explanation
+	\item LDA explanation
+	\item sklearn citation
+    \item[]
+    \item Looking at the extreme ones
+	\item Eigenshape analysis
+	\item Direct axis interpretability - by plotting "pure" axes
+\end{itemize}
+
+\section{Results}
+
+\bibliographystyle{unsrt}
+\bibliography{references}
+
+\end{document}
