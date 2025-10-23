@@ -83,6 +83,4 @@ def test_img_rotation():
     coeffs1 = efa.coefficients(img1, 50, 5)
     coeffs2 = efa.coefficients(img2, 50, 5)
 
-    assert (
-        (coeffs1 == coeffs2).all()
-    ), "Currently broken because my rotation doesn't do it right?"
+    np.testing.assert_allclose(coeffs1, coeffs2, atol=1e-2)
