@@ -10,6 +10,7 @@ import re
 from functools import cache
 
 import numpy as np
+import pandas as pd
 
 
 def stain(name: str) -> str:
@@ -94,3 +95,18 @@ def magnification(path: str) -> float:
     if match := _mag_regex().match(path):
         return float(match.group(1))
     return np.nan
+
+
+def df(paths: list[str]) -> pd.DataFrame:
+    """
+    Get dataframe of all the metadata
+    """
+    return pd.DataFrame(
+        {
+            "path": paths,
+            "sex": (sex(p) for p in paths),
+            "magnification": (magnification(p) for p in paths),
+            "age": (age(p) for p in paths),
+            "stain": (stain(p) for p in paths),
+        }
+    )

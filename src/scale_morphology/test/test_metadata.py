@@ -3,6 +3,7 @@ Test the metadata reading fcns
 """
 
 import numpy as np
+import pandas as pd
 
 from scale_morphology.scales import metadata
 
@@ -82,3 +83,15 @@ def test_get_magnification():
             "Fish3_D10reg_scale001__OSX_mcherry_2021_4months_ALP_segmentation.tif"
         )
     )
+
+
+def test_df():
+    """
+    Check we build up a dataframe of metadata correctly
+    """
+    name = "Fish1_male_Onto_3.2X_scale006__3year4months_ALP_segmentation.tif"
+    expected = pd.DataFrame(
+        {"path": [name], "sex": "M", "magnification": 3.2, "age": 40, "stain": "ALP"}
+    )
+
+    assert (metadata.df([name]) == expected).all().all()
