@@ -4,6 +4,7 @@ Segment the scale from an unprocessed image
 
 import sys
 import pathlib
+import warnings
 import torch
 from segment_anything import sam_model_registry, SamPredictor
 from functools import cache
@@ -88,9 +89,14 @@ def rough_segment_alp(enhanced_img: np.ndarray) -> np.ndarray:
 
     """
     # Threshold
-    thresholded = (enhanced_img < threshold_minimum(enhanced_img)) | (
-        enhanced_img < threshold_mean(enhanced_img)
-    )
+    try:
+        min_th = threshold_minimum(enhanced_img)
+    except RuntimeError as e:
+        warnings.warn(f"Failed to find min threshold:\n{str(e)}")
+        min_th = 0
+
+    mean_th = threshold_mean(enhanced_img)
+    thresholded = enhanced_img < max(min_th, mean_th)
 
     # Clear the border
     cleared = _clear_border_keep_large(thresholded)
