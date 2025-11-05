@@ -60,6 +60,9 @@ def get_month(stem):
     month_str, _ = stem.split("month")
     month_str = month_str.strip()
 
+    # We might have a _-separated filename
+    month_str = month_str.strip("_")
+
     # We might have a 2-digit month, so check for that here
     if month_str[-2].isdigit():
         return int(month_str[-2:])
