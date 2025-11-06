@@ -100,6 +100,24 @@ def magnification(path: str) -> float:
     return np.nan
 
 
+def growth(path: str) -> str:
+    """
+    Growth status of a scale - onto(genetic) or regen(erating).
+
+    Returns ? if neither are found in the path; assumes the path is
+    labelled by "onto" or "reg", and that this is found in the lif filename
+    (which is separated in `path` by a double underscore)
+    """
+    lif_name, _ = path.split("__")
+    lif_name = lif_name.lower()
+
+    if "reg" in lif_name:
+        return "regen"
+    if "onto" in lif_name:
+        return "onto"
+    return "?"
+
+
 def df(paths: list[str]) -> pd.DataFrame:
     """
     Get dataframe of all the metadata
@@ -111,5 +129,6 @@ def df(paths: list[str]) -> pd.DataFrame:
             "magnification": (magnification(p) for p in paths),
             "age": (age(p) for p in paths),
             "stain": (stain(p) for p in paths),
+            "growth": (growth(p) for p in paths),
         }
     )

@@ -85,13 +85,38 @@ def test_get_magnification():
     )
 
 
+def test_get_growth():
+    """
+    Check we can get the onto/regen labels correctly
+    """
+    name = "Fish3_male_D21reg_scale002__2021_spp1mutant_HomMch_7months_ALP_segmentation.tif"
+    assert metadata.growth(name) == "regen"
+
+    name = "Fish1_Onto_scale006__OSX_mcherry_GFP_2021_10_months_ALP_segmentation.tif"
+    assert metadata.growth(name) == "onto"
+
+    # lowercase o
+    name = "Fish1_onto_scale006__OSX_mcherry_GFP_2021_10_months_ALP_segmentation.tif"
+    assert metadata.growth(name) == "onto"
+
+    name = "Fish7_3.2X_scale008__3year4months_ALP_segmentation.tif"
+    assert metadata.growth(name) == "?"
+
+
 def test_df():
     """
     Check we build up a dataframe of metadata correctly
     """
     name = "Fish1_male_Onto_3.2X_scale006__3year4months_ALP_segmentation.tif"
     expected = pd.DataFrame(
-        {"path": [name], "sex": "M", "magnification": 3.2, "age": 40, "stain": "ALP"}
+        {
+            "path": [name],
+            "sex": "M",
+            "magnification": 3.2,
+            "age": 40,
+            "stain": "ALP",
+            "growth": "onto",
+        }
     )
 
     assert (metadata.df([name]) == expected).all().all()
