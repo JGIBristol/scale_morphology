@@ -3,11 +3,12 @@ Helpers for the EFA algorithm
 
 """
 
+import pyefd
 import shapely
 import numpy as np
 from skimage import measure
+from scipy.ndimage import center_of_mass
 
-import pyefd
 
 from scale_morphology.scales import errors
 
@@ -42,9 +43,23 @@ def points_around_edge(
 def _rotate(coeffs: np.ndarray) -> np.ndarray:
     """
     Rotate EFD coefficients for one contour such that the principal axis
-    is horizontal
+    is horizontal.
+
+    Also normalises handedness such that coefficients traced in opposite directions
+    give the same coefficients.
 
     """
+
+    # Step 1: check handedness of the contour
+    # We might have traced the contour anti-/clockwise, which
+    # will result in us flipping the sign of our contour and also
+    # Swapping a->c and b->d
+    a, b, c, d = coeffs[0]
+    if b * c < a * d:
+        coeffs = np.column_stack(
+            [-coeffs[:, 2], -coeffs[:, 3], -coeffs[:, 0], -coeffs[:, 1]]
+        )
+
     a, b, c, d = coeffs[0]
 
     theta = 0.5 * np.arctan2(
@@ -52,7 +67,7 @@ def _rotate(coeffs: np.ndarray) -> np.ndarray:
         (a**2 - b**2 + c**2 - d**2),
     )
 
-    # Step 1: align all harmonics with the major axis
+    # Step 2: align all harmonics with the major axis
     # Do this by rotating each harmonic by -i*theta,
     # where i is the harmonic number
     # We can do this efficiently by building Nx2x2 arrays
@@ -71,7 +86,7 @@ def _rotate(coeffs: np.ndarray) -> np.ndarray:
     # This is now an Nx2x2 array of rotated coefficients
     rotated = np.matmul(coeff_matrices, theta_rotations)
 
-    # Step 2: align the major axis with the x-axis
+    # Step 3: align the major axis with the x-axis
     # We just repeat the above, but now it's easier because the
     # rotation matrix is the same for all harmonics
     # psi is the angle defined by the c and a coeffs
@@ -88,6 +103,26 @@ def _rotate(coeffs: np.ndarray) -> np.ndarray:
     return rotated.reshape(-1, 4)
 
 
+def reorder_by_distance(
+    points: np.ndarray, reference_point: tuple[float, float]
+) -> np.ndarray:
+    """
+    Reorder a 2d array of points, preserving their order but shuffling such that the point
+    closest to `reference_point` is first in the array
+
+    :param points: np array of points, shape (N, 2)
+    :param reference_point: point to use as reference
+    """
+    assert points.shape[1] == 2
+    assert len(reference_point) == 2
+
+    x, y = points.T
+    distances_sq = (x - reference_point[0]) ** 2 + (y - reference_point[1]) ** 2
+    start_idx = np.argmin(distances_sq)
+
+    return np.roll(points, -start_idx, axis=0)
+
+
 def coefficients(binary_img: np.ndarray, n_points: int, order: int) -> None:
     """
     Find the Elliptic Fourier expansion coefficients of an object in the given binary image.
@@ -98,6 +133,9 @@ def coefficients(binary_img: np.ndarray, n_points: int, order: int) -> None:
     The returned EFA coefficients are un-normalised, to preserve size information, and are
     rotated so that the principal axis is horizontal.
 
+    The contour begins at the point closest to the centroid of the object, which makes
+    the coefficients consistent for shapes which differ by a rigid rotation.
+
     """
     if measure.euler_number(binary_img) != 1:
         raise errors.HolesError(
@@ -107,9 +145,15 @@ def coefficients(binary_img: np.ndarray, n_points: int, order: int) -> None:
 
     x, y = points_around_edge(binary_img, n_points)
 
-    coeffs = pyefd.elliptic_fourier_descriptors(
-        np.array([x, y]).T, order=order, normalize=False
+    # Reorder the points to start in a consistent location
+    # Starting at the closest point to the centroid
+    centroid = center_of_mass(binary_img)
+    points = reorder_by_distance(
+        np.array([x, y]).T,
+        centroid[::-1],
     )
+
+    coeffs = pyefd.elliptic_fourier_descriptors(points, order=order, normalize=False)
     return _rotate(coeffs)
 
 

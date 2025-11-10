@@ -4,6 +4,7 @@ Tests for the efa module
 """
 
 import pyefd
+import pytest
 import numpy as np
 from skimage.morphology import disk
 
@@ -41,11 +42,14 @@ def test_rotation():
     Check the rotation of coefficients works
 
     """
+    # Specially constructed coeffs matrix
+    # Needs to be rotated, but handedness doesn't
+    # need to be fixed (the pyefd one doesn't do this)
     coeffs = np.array(
         [
-            [1, -0.5, 2, 0.5],
-            [0.5, 0.6, 0.7, 0.8],
-            [0.1, 0.1, 0.2, 0.3],
+            [2, 0.5, 1, -0.5],
+            [0.7, 0.8, 0.5, 0.6],
+            [0.2, 0.3, 0.1, 0.1],
         ]
     )
 
@@ -55,9 +59,10 @@ def test_rotation():
     )
 
 
-def test_img_rotation():
+@pytest.fixture
+def rotated_imgs() -> tuple[np.ndarray, np.ndarray]:
     """
-    Check that we get the same EFA coefficients for two images that are the same but rotated
+    Two images which differ only by a rigid rotation
     """
     # Generate both images
     empty = np.zeros((32, 32))
@@ -79,8 +84,90 @@ def test_img_rotation():
     img1 = (255 * img1).astype(np.uint8)
     img2 = (255 * img2).astype(np.uint8)
 
+    return img1, img2
+
+
+def test_coeffs_rotated_imgs(rotated_imgs: tuple[np.ndarray, np.ndarray]):
+    """
+    Check that we get the same EFA coefficients for two images that are the same but rotated
+    """
+    img1, img2 = rotated_imgs
+
     # Get EFA coeffs for both
     coeffs1 = efa.coefficients(img1, 50, 5)
     coeffs2 = efa.coefficients(img2, 50, 5)
 
     np.testing.assert_allclose(coeffs1, coeffs2, atol=1e-2)
+
+
+def test_contour_handedness():
+    """
+    Check we get the same coefficients for two contours of different handedness
+    """
+    # Generate some points on a square
+    x1 = [-1, 0, 1, 1, 1, 0, -1, -1]
+    y1 = [1, 1, 1, 0, -1, -1, -1, 0]
+
+    # Generate some new points that are the same but go the other way
+    x2 = [-1, -1, -1, 0, 1, 1, 1, 0]
+    y2 = [1, 0, -1, -1, -1, 0, 1, 1]
+
+    order = 3
+    coeffs1 = pyefd.elliptic_fourier_descriptors(
+        np.array([x1, y1]).T, order=order, normalize=False
+    )
+    coeffs2 = pyefd.elliptic_fourier_descriptors(
+        np.array([x2, y2]).T, order=order, normalize=False
+    )
+
+    # They will be different, since they have different handedness
+    assert not np.allclose(coeffs1, coeffs2)
+
+    # This should make them align
+    np.testing.assert_allclose(efa._rotate(coeffs1), efa._rotate(coeffs2))
+
+
+def test_shapes_facing_different_ways():
+    """
+    Check we get the same coefficients for two contours representing the same
+    shape with the same handedness, but which point in different ways
+    """
+    # Triangle pointing up
+    x1 = [1, 2, 0]
+    y1 = [2, 1, 1]
+
+    # Triangle pointing down
+    x2 = [0, -1, 1]
+    y2 = [-1, 0, 0]
+
+    order = 3
+    coeffs1 = pyefd.elliptic_fourier_descriptors(
+        np.array([x1, y1]).T, order=order, normalize=False
+    )
+    coeffs2 = pyefd.elliptic_fourier_descriptors(
+        np.array([x2, y2]).T, order=order, normalize=False
+    )
+
+    # These should just differ by a sign
+    assert not np.allclose(coeffs1, coeffs2)
+    np.testing.assert_allclose(coeffs1, -coeffs2)
+
+    # This should make them align
+    np.testing.assert_allclose(efa._rotate(coeffs1), efa._rotate(coeffs2), atol=1e-8)
+
+
+def test_reorder_distances():
+    """
+    Check we correctly do this
+    """
+    points = np.array(
+        [[1, 1], [1, 0], [1, -1], [0, -1], [-1, -1], [-1, 0], [-1, 1], [0, 1]]
+    )
+
+    reference = (-0.5, 0)
+
+    expected = np.array(
+        [[-1, 0], [-1, 1], [0, 1], [1, 1], [1, 0], [1, -1], [0, -1], [-1, -1]]
+    )
+
+    np.testing.assert_allclose(efa.reorder_by_distance(points, reference), expected)
