@@ -103,6 +103,18 @@ def test_get_growth():
     assert metadata.growth(name) == "?"
 
 
+def test_no_data():
+    """
+    Check we can correctly identify an image with a missing scale
+    """
+    assert not metadata.no_scale(
+        "Fish7_3.2X_scale008__3year4months_ALP_segmentation.tif"
+    )
+    assert metadata.no_scale(
+        "Fish5_male_D10reg_scale_no data001__2021_spp1mutant_HomMch_7months_ALP.tif"
+    )
+
+
 def test_df():
     """
     Check we build up a dataframe of metadata correctly
@@ -116,6 +128,7 @@ def test_df():
             "age": 40,
             "stain": "ALP",
             "growth": "onto",
+            "no_scale": False,
         }
     )
 

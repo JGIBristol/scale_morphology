@@ -118,6 +118,13 @@ def growth(path: str) -> str:
     return "?"
 
 
+def no_scale(path: str) -> bool:
+    """
+    Whether this image contains no scale
+    """
+    return "no data" in path
+
+
 def df(paths: list[str]) -> pd.DataFrame:
     """
     Get dataframe of all the metadata
@@ -130,5 +137,6 @@ def df(paths: list[str]) -> pd.DataFrame:
             "age": (age(p) for p in paths),
             "stain": (stain(p) for p in paths),
             "growth": (growth(p) for p in paths),
+            "no_scale": (no_scale(p) for p in paths),
         }
     )
