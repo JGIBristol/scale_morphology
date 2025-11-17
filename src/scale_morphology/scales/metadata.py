@@ -100,22 +100,33 @@ def magnification(path: str) -> float:
     return np.nan
 
 
-def growth(path: str) -> str:
+@cache
+def _growth_regex():
+    return re.compile(r"^.*D(\d+)reg.*$")
+
+
+def growth(path: str) -> float:
     """
     Growth status of a scale - onto(genetic) or regen(erating).
+    Gives:
+        - np.inf if onto
+        - the number of days of regeneration, if regen
+        - np.nan if not specified
 
-    Returns ? if neither are found in the path; assumes the path is
-    labelled by "onto" or "reg", and that this is found in the lif filename
-    (which is separated in `path` by a double underscore)
+    Assumes the path is labelled by "onto" or "reg", and that this
+    is found in the lif filename (which is separated in `path`
+    by a double underscore)
     """
     lif_name, _ = path.split("__")
     lif_name = lif_name.lower()
 
-    if "reg" in lif_name:
-        return "regen"
     if "onto" in lif_name:
-        return "onto"
-    return "?"
+        return np.inf
+
+    if "reg" in lif_name:
+        return float(_growth_regex().match(path).group(1))
+
+    return np.nan
 
 
 def no_scale(path: str) -> bool:

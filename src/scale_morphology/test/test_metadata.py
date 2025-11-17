@@ -90,17 +90,26 @@ def test_get_growth():
     Check we can get the onto/regen labels correctly
     """
     name = "Fish3_male_D21reg_scale002__2021_spp1mutant_HomMch_7months_ALP_segmentation.tif"
-    assert metadata.growth(name) == "regen"
+    assert metadata.growth(name) == 21
+
+    name = "Fish1_D10reg_scale011__OSX_mcherry_GFP_2021_10_months_ALP.tif"
+    assert metadata.growth(name) == 10
+
+    name = "Fish1_D9reg_scale001__OSX_mcherry_Gli_GFP_1year5months_ALP_2021.tif"
+    assert metadata.growth(name) == 9
+
+    name = "Fish3_male_D21reg_scale002__2021_spp1mutant_HomMch_7months_ALP_segmentation.tif"
+    assert metadata.growth(name) == 21
 
     name = "Fish1_Onto_scale006__OSX_mcherry_GFP_2021_10_months_ALP_segmentation.tif"
-    assert metadata.growth(name) == "onto"
+    assert metadata.growth(name) == np.inf
 
     # lowercase o
     name = "Fish1_onto_scale006__OSX_mcherry_GFP_2021_10_months_ALP_segmentation.tif"
-    assert metadata.growth(name) == "onto"
+    assert metadata.growth(name) == np.inf
 
     name = "Fish7_3.2X_scale008__3year4months_ALP_segmentation.tif"
-    assert metadata.growth(name) == "?"
+    assert np.isnan(metadata.growth(name))
 
 
 def test_no_data():
@@ -127,7 +136,7 @@ def test_df():
             "magnification": 3.2,
             "age": 40,
             "stain": "ALP",
-            "growth": "onto",
+            "growth": np.inf,
             "no_scale": False,
         }
     )
