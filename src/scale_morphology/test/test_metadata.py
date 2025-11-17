@@ -124,6 +124,44 @@ def test_no_data():
     )
 
 
+def test_mutation():
+    """
+    Check we can get the right mutations:
+    """
+    assert (
+        metadata.mutation(
+            "Fish5_male_Onto_scale007__2021_spp1mutant_WTsibling_7months_ALP.tif"
+        )
+        == "WT"
+    )
+
+    assert (
+        metadata.mutation(
+            "Fish6_Male_D10reg_scale001__2021_spp1mutant_HomMch_7months_ALP.tif"
+        )
+        == "SPP1"
+    )
+
+    assert (
+        metadata.mutation("Fish5_male_Onto_scale011__2022_1year6months_OMD_ALP.tif")
+        == "OMD"
+    )
+
+    assert (
+        metadata.mutation(
+            "Fish6male_D10reg_scale012__2021_LC3_GFP_OSX_Mcherry_1year_ALP.tif"
+        )
+        == "WT"
+    )
+
+    assert (
+        metadata.mutation(
+            "Fish5_male_Onto_scale002__2021_spp1mutant_WTsibling_7months_ALP.tif"
+        )
+        == "WT"
+    )
+
+
 def test_df():
     """
     Check we build up a dataframe of metadata correctly
@@ -137,6 +175,7 @@ def test_df():
             "age": 40,
             "stain": "ALP",
             "growth": np.inf,
+            "mutation": "WT",
             "no_scale": False,
         }
     )

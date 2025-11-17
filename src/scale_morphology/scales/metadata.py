@@ -136,6 +136,27 @@ def no_scale(path: str) -> bool:
     return "no data" in path
 
 
+def mutation(path: str) -> str:
+    """
+    Get the mutation, or WT (in all caps)
+    """
+    path = path.lower()
+
+    # Wildtypes - do this first to
+    # catch spp1 sibling wildtypes
+    if "wt" in path:
+        return "WT"
+
+    # Various mutants
+    if "omd" in path:
+        return "OMD"
+    if "spp1mutant_hom" in path:
+        return "SPP1"
+
+    # Fallback is wildtype
+    return "WT"
+
+
 def df(paths: list[str]) -> pd.DataFrame:
     """
     Get dataframe of all the metadata
@@ -148,6 +169,7 @@ def df(paths: list[str]) -> pd.DataFrame:
             "age": (age(p) for p in paths),
             "stain": (stain(p) for p in paths),
             "growth": (growth(p) for p in paths),
+            "mutation": (mutation(p) for p in paths),
             "no_scale": (no_scale(p) for p in paths),
         }
     )
