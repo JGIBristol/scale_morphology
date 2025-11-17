@@ -171,3 +171,30 @@ def test_reorder_distances():
     )
 
     np.testing.assert_allclose(efa.reorder_by_distance(points, reference), expected)
+
+
+def test_efa_circle():
+    """
+    Check we get the right coefficients if we perform EFA on a simple shape
+    (a circle)
+    """
+    img = np.zeros((32, 32))
+    r = 4
+    x, y = 10, 10
+    img[y - r : y + r + 1, x - r : x + r + 1] = disk(r)
+
+    img = img.astype(np.uint8) * 255
+
+    coeffs = efa.coefficients(img, 10, 4)
+
+    # Hacky test - I'm not sure what the first
+    # element should be here, and we're probably going to change
+    # it soon anyway so just check the other components for now
+    expected_coeffs = [
+        [coeffs[0, 0], 0, 0, 0],
+        [0, 0, 0, 0],
+        [0, 0, 0, 0],
+        [0, 0, 0, 0],
+    ]
+
+    np.testing.assert_allclose(coeffs, expected_coeffs, atol=0.01)

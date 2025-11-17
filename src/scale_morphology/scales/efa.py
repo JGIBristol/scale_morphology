@@ -148,12 +148,12 @@ def coefficients(binary_img: np.ndarray, n_points: int, order: int) -> None:
     # Reorder the points to start in a consistent location
     # Starting at the closest point to the centroid
     centroid = center_of_mass(binary_img)
-    points = reorder_by_distance(
+    x, y = reorder_by_distance(
         np.array([x, y]).T,
         centroid[::-1],
-    )
+    ).T
 
-    coeffs = pyefd.elliptic_fourier_descriptors(points, order=order, normalize=False)
+    coeffs = pyefd.elliptic_fourier_descriptors([x, y], order=order, normalize=False)
     return _rotate(coeffs)
 
 
