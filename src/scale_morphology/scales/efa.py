@@ -34,8 +34,10 @@ def points_around_edge(
     distances = np.linspace(0, 1, n_points + 1)
     pts = shapely.line_interpolate_point(shape, distances, normalized=True)
 
-    x = [p.x for p in pts]
-    y = [p.y for p in pts]
+    # The final point is by default a repeat of the first, which breaks things
+    # So cut it off here
+    x = [p.x for p in pts][:-1]
+    y = [p.y for p in pts][:-1]
 
     return np.array(x), np.array(y)
 
@@ -139,13 +141,27 @@ def _coeffs(
     """
     # Reorder the points to start in a consistent location
     # Starting at the closest point to the centroid
-    x, y = reorder_by_distance(
+    points = reorder_by_distance(
         np.array(points).T,
         com[::-1],  # com is backwards (y, x)
-    ).T
+    )
 
-    coeffs = pyefd.elliptic_fourier_descriptors([x, y], order=order, normalize=False)
+    coeffs = pyefd.elliptic_fourier_descriptors(points, order=order, normalize=False)
     return _rotate(coeffs)
+
+
+def _normalise(coeffs: np.ndarray, size: float) -> np.ndarray:
+    """
+    Normalise and flatten coefficients to remove size information and remove
+    redundant coefficients.
+
+    Then prepend the size of the scale as the first element.
+    """
+    coeffs = coeffs / coeffs[0, 0]
+    assert np.isclose(coeffs[0, 1], 0)
+    assert np.isclose(coeffs[0, 1], 0)
+
+    return np.concatenate(([size], coeffs.flatten()[3:]))
 
 
 def coefficients(binary_img: np.ndarray, n_points: int, order: int) -> np.ndarray:
@@ -170,7 +186,9 @@ def coefficients(binary_img: np.ndarray, n_points: int, order: int) -> np.ndarra
 
     x, y = points_around_edge(binary_img, n_points)
 
-    return _coeffs([x, y], center_of_mass(binary_img), order)
+    coeffs = _coeffs([x, y], center_of_mass(binary_img), order)
+
+    return _normalise(coeffs, np.sum(binary_img) / 255)
 
 
 def coeffs2points(coeffs, locus, *, n_pts=300):
@@ -178,7 +196,14 @@ def coeffs2points(coeffs, locus, *, n_pts=300):
     Get the x, y coordinates of the EFD points given the coefficients
     in the expansion
 
+    :param coeffs: 1d array of (size, d0, a1, b2, c2, d2, ...)
+
     """
+    # Put the 2nd dimension back and remove the first element (it's the size)
+    coeffs = coeffs[1:]
+    coeffs = np.concatenate([[1, 0, 0], coeffs])
+    coeffs = coeffs.reshape((-1, 4))
+
     t = np.linspace(0, 1.0, n_pts)
     harmonics = np.arange(1, coeffs.shape[0] + 1)
 

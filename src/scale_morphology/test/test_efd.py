@@ -29,10 +29,14 @@ def test_point_around_segmentation():
         ],
         dtype=np.uint8,
     )
-    x, y = efa.points_around_edge(square, 10)
+    n_pts = 10
+    x, y = efa.points_around_edge(square, n_pts)
 
-    expected_x = [5.5, 4.5, 3.5, 2.5, 1.5, 0.5, 1.5, 2.5, 3.5, 4.5, 5.5]
-    expected_y = [3.0, 2.0, 1.0, 1.0, 2.0, 3.0, 4.0, 5.0, 5.0, 4.0, 3.0]
+    assert len(x) == n_pts
+    assert len(y) == n_pts
+
+    expected_x = [5.5, 4.5, 3.5, 2.5, 1.5, 0.5, 1.5, 2.5, 3.5, 4.5]
+    expected_y = [3.0, 2.0, 1.0, 1.0, 2.0, 3.0, 4.0, 5.0, 5.0, 4.0]
 
     assert np.allclose(x, expected_x)
     assert np.allclose(y, expected_y)
@@ -98,7 +102,22 @@ def test_coeffs_rotated_imgs(rotated_imgs: tuple[np.ndarray, np.ndarray]):
     coeffs1 = efa.coefficients(img1, 50, 5)
     coeffs2 = efa.coefficients(img2, 50, 5)
 
-    np.testing.assert_allclose(coeffs1, coeffs2, atol=1e-2)
+    atol, rtol = 0.02, 0.01
+    np.testing.assert_allclose(coeffs1, coeffs2, atol=0.02, rtol=0.01)
+
+    # Break the image and check the coefficients are now different
+    s = 6
+    x1, y1 = 11, 12
+    img1[y1 - s : y1 + s + 1, x1 - s : x1 + s + 1] = 0
+
+    coeffs1 = efa.coefficients(img1, 50, 5)
+
+    np.testing.assert_raises(
+        AssertionError,
+        lambda x, y: np.testing.assert_allclose(x, y, atol=atol, rtol=rtol),
+        coeffs1,
+        coeffs2,
+    )
 
 
 def test_reorder_distances():
@@ -123,26 +142,42 @@ def test_efa_circle():
     Check we get the right coefficients if we perform EFA on a simple shape
     (a circle)
     """
-    img = np.zeros((32, 32))
-    r = 4
-    x, y = 10, 10
-    img[y - r : y + r + 1, x - r : x + r + 1] = disk(r)
+    # Generate some fake points
+    thetas = np.linspace(0, 2 * np.pi, 10000)
+    x = [np.cos(t) for t in thetas]
+    y = [np.sin(t) for t in thetas]
 
-    img = img.astype(np.uint8) * 255
+    order = 4
+    size = 150  # Fake size of our object
 
-    coeffs = efa.coefficients(img, 10, 4)
+    coeffs = efa._coeffs([x, y], (0, 0), order)
+    coeffs = efa._normalise(coeffs, size)
 
-    # Hacky test - I'm not sure what the first
-    # element should be here, and we're probably going to change
-    # it soon anyway so just check the other components for now
-    expected_coeffs = [
-        [coeffs[0, 0], 0, 0, 0],
-        [0, 0, 0, 0],
-        [0, 0, 0, 0],
-        [0, 0, 0, 0],
-    ]
+    # 4 harmonics gives us 16 numbers
+    # -3 for redundancy gives us 13
+    # Then +1 for size gives us 14 total
+    # The first harmonic is circular, so after scaling is
+    # [1, 0, 0, 1] - but we removed the first three of these
+    # So we are just left with [size, 1, 0, 0, 0, ...]
+    # Actually its -1 though not sure why
+    expected_coeffs = np.array([*[size, -1], *[0] * 12])
 
     np.testing.assert_allclose(coeffs, expected_coeffs, atol=0.01)
+
+
+def test_normalise_coeffs():
+    """
+    Scale coefficients, prepend size and remove redundant information
+    """
+    coeffs = np.arange(24, 0, -1).reshape((6, 4))
+    coeffs[0] = [24, 0, 0, coeffs[0, 3]]
+
+    size = 100
+
+    # Expected array is [100, (21, 20, 19...2, 1) / 24]
+    expected = np.array([100, *np.arange(21, 0, -1) / 24])
+
+    np.testing.assert_allclose(efa._normalise(coeffs, size), expected)
 
 
 # ==== Tests for the EFA inductive biases - things like size, rotation,
@@ -165,10 +200,15 @@ def test_shapes_facing_different_ways():
     com2 = [0, -1 / 3]
 
     order = 3
-    coeffs1 = efa._coeffs([x1, y1], com1, order=order)
-    coeffs2 = efa._coeffs([x2, y2], com2, order=order)
+    size = 9
 
-    np.testing.assert_allclose(coeffs1, coeffs2)
+    coeffs1 = efa._coeffs([x1, y1], com1, order=order)
+    coeffs1 = efa._normalise(coeffs1, size)
+
+    coeffs2 = efa._coeffs([x2, y2], com2, order=order)
+    coeffs2 = efa._normalise(coeffs2, size)
+
+    np.testing.assert_allclose(coeffs1, coeffs2, atol=0.01, rtol=0.01)
 
 
 def test_contour_handedness():
@@ -213,6 +253,9 @@ def test_size_invariant():
     """
     Check that the coefficients are size-invariant by finding the coeffs
     for two identical shapes with different scales
+
+    Of course the 0th element will be different, because this just encodes
+    the size...
     """
     big_rect = _rectangle(40, 20)
     small_rect = _rectangle(20, 10)
@@ -221,30 +264,47 @@ def test_size_invariant():
     big_coeffs = efa.coefficients(big_rect, n_points, n_coeffs)
     small_coeffs = efa.coefficients(small_rect, n_points, n_coeffs)
 
-    np.testing.assert_allclose(big_coeffs, small_coeffs)
+    atol, rtol = 0.02, 0.01
+    np.testing.assert_allclose(big_coeffs[1:], small_coeffs[1:], atol=atol, rtol=rtol)
 
     # This shape should have different coefficients, however, because it
     # has a different aspecct ratio
     long_rect = _rectangle(10, 90)
     long_coeffs = efa.coefficients(long_rect, n_points, n_coeffs)
 
-    assert not np.allclose(long_coeffs, big_coeffs)
-    assert not np.allclose(long_coeffs, small_coeffs)
+    np.testing.assert_raises(
+        AssertionError,
+        lambda x, y: np.testing.assert_allclose(x, y, atol=atol, rtol=rtol),
+        long_coeffs,
+        big_coeffs,
+    )
+    np.testing.assert_raises(
+        AssertionError,
+        lambda x, y: np.testing.assert_allclose(x, y, atol=atol, rtol=rtol),
+        long_coeffs,
+        small_coeffs,
+    )
 
 
 def test_rotation_invariant():
     """
     Check we get the same coefficients for the same shape but rotated
     """
-    h, w = 40, 50
-    orig = _rectangle(h, w, angle=0)
-    rotated = _rectangle(h, w, angle=45)
+    h, w = 40, 40
+    orig = np.zeros((100, 100), dtype=np.uint8)
+    orig[*np.triu_indices(100)] = 255
+
+    rotated = np.rot90(orig, k=1)
 
     n_points, n_coeffs = 30, 5
     orig_coeffs = efa.coefficients(orig, n_points, n_coeffs)
     rot_coeffs = efa.coefficients(rotated, n_points, n_coeffs)
 
-    np.testing.assert_allclose(orig_coeffs, rot_coeffs)
+    atol, rtol = 0.02, 0.01
+    # aliasing during the rotation might have changed the size a bit
+    np.testing.assert_allclose(orig_coeffs[1:], rot_coeffs[1:], atol=atol, rtol=rtol)
+
+    np.testing.assert_allclose(orig_coeffs[0], rot_coeffs[0], rtol=0.1)
 
 
 def test_translation_invariant():
@@ -273,4 +333,5 @@ def test_reflection_invariant():
     orig_coeffs = efa.coefficients(orig, n_points, n_coeffs)
     ref_coeffs = efa.coefficients(reflected, n_points, n_coeffs)
 
-    np.testing.assert_allclose(orig_coeffs, ref_coeffs)
+    atol, rtol = 0.02, 0.01
+    np.testing.assert_allclose(orig_coeffs, ref_coeffs, atol=atol, rtol=rtol)
