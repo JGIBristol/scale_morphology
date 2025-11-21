@@ -7,6 +7,7 @@ import pyefd
 import pytest
 import numpy as np
 from skimage.morphology import disk
+from scipy.ndimage import rotate
 
 from ..scales import efa
 
@@ -100,65 +101,9 @@ def test_coeffs_rotated_imgs(rotated_imgs: tuple[np.ndarray, np.ndarray]):
     np.testing.assert_allclose(coeffs1, coeffs2, atol=1e-2)
 
 
-def test_contour_handedness():
-    """
-    Check we get the same coefficients for two contours of different handedness
-    """
-    # Generate some points on a square
-    x1 = [-1, 0, 1, 1, 1, 0, -1, -1]
-    y1 = [1, 1, 1, 0, -1, -1, -1, 0]
-
-    # Generate some new points that are the same but go the other way
-    x2 = [-1, -1, -1, 0, 1, 1, 1, 0]
-    y2 = [1, 0, -1, -1, -1, 0, 1, 1]
-
-    order = 3
-    coeffs1 = pyefd.elliptic_fourier_descriptors(
-        np.array([x1, y1]).T, order=order, normalize=False
-    )
-    coeffs2 = pyefd.elliptic_fourier_descriptors(
-        np.array([x2, y2]).T, order=order, normalize=False
-    )
-
-    # They will be different, since they have different handedness
-    assert not np.allclose(coeffs1, coeffs2)
-
-    # This should make them align
-    np.testing.assert_allclose(efa._rotate(coeffs1), efa._rotate(coeffs2))
-
-
-def test_shapes_facing_different_ways():
-    """
-    Check we get the same coefficients for two contours representing the same
-    shape with the same handedness, but which point in different ways
-    """
-    # Triangle pointing up
-    x1 = [1, 2, 0]
-    y1 = [2, 1, 1]
-
-    # Triangle pointing down
-    x2 = [0, -1, 1]
-    y2 = [-1, 0, 0]
-
-    order = 3
-    coeffs1 = pyefd.elliptic_fourier_descriptors(
-        np.array([x1, y1]).T, order=order, normalize=False
-    )
-    coeffs2 = pyefd.elliptic_fourier_descriptors(
-        np.array([x2, y2]).T, order=order, normalize=False
-    )
-
-    # These should just differ by a sign
-    assert not np.allclose(coeffs1, coeffs2)
-    np.testing.assert_allclose(coeffs1, -coeffs2)
-
-    # This should make them align
-    np.testing.assert_allclose(efa._rotate(coeffs1), efa._rotate(coeffs2), atol=1e-8)
-
-
 def test_reorder_distances():
     """
-    Check we correctly do this
+    Check that we correctly reorder input points starting from the closest to the centroid.
     """
     points = np.array(
         [[1, 1], [1, 0], [1, -1], [0, -1], [-1, -1], [-1, 0], [-1, 1], [0, 1]]
@@ -198,3 +143,134 @@ def test_efa_circle():
     ]
 
     np.testing.assert_allclose(coeffs, expected_coeffs, atol=0.01)
+
+
+# ==== Tests for the EFA inductive biases - things like size, rotation,
+# ==== handedness, location invariance
+
+
+def test_shapes_facing_different_ways():
+    """
+    Check we get the same coefficients for two contours representing the same
+    shape with the same handedness, but which point in different ways
+    """
+    # Triangle pointing up
+    x1 = [1, 2, 0]
+    y1 = [2, 1, 1]
+    com1 = [1, 4 / 3]
+
+    # Triangle pointing down
+    x2 = [0, -1, 1]
+    y2 = [-1, 0, 0]
+    com2 = [0, -1 / 3]
+
+    order = 3
+    coeffs1 = efa._coeffs([x1, y1], com1, order=order)
+    coeffs2 = efa._coeffs([x2, y2], com2, order=order)
+
+    np.testing.assert_allclose(coeffs1, coeffs2)
+
+
+def test_contour_handedness():
+    """
+    Check we get the same coefficients for two contours of different handedness
+    """
+    # Generate some points on a square
+    x1 = [-1, 0, 1, 1, 1, 0, -1, -1]
+    y1 = [1, 1, 1, 0, -1, -1, -1, 0]
+
+    # Generate some new points that are the same but go the other way
+    x2 = [-1, -1, -1, 0, 1, 1, 1, 0]
+    y2 = [1, 0, -1, -1, -1, 0, 1, 1]
+
+    order = 3
+    coeffs1 = pyefd.elliptic_fourier_descriptors(
+        np.array([x1, y1]).T, order=order, normalize=False
+    )
+    coeffs2 = pyefd.elliptic_fourier_descriptors(
+        np.array([x2, y2]).T, order=order, normalize=False
+    )
+
+    # They will be different, since they have different handedness
+    assert not np.allclose(coeffs1, coeffs2)
+
+    # This should make them align
+    np.testing.assert_allclose(efa._rotate(coeffs1), efa._rotate(coeffs2))
+
+
+def _rectangle(w: int, h: int, angle: float = 45, centre: tuple[int, int] = (50, 50)):
+    """
+    A rectangle of the provided width/height
+    """
+    x, y = centre
+    rect = np.zeros((100, 100), dtype=np.uint8)
+    rect[x - w // 2 : x + w // 2, y - h // 2 : y + h // 2] = 255
+
+    return rotate(rect, angle, order=0)
+
+
+def test_size_invariant():
+    """
+    Check that the coefficients are size-invariant by finding the coeffs
+    for two identical shapes with different scales
+    """
+    big_rect = _rectangle(40, 20)
+    small_rect = _rectangle(20, 10)
+
+    n_points, n_coeffs = 30, 5
+    big_coeffs = efa.coefficients(big_rect, n_points, n_coeffs)
+    small_coeffs = efa.coefficients(small_rect, n_points, n_coeffs)
+
+    np.testing.assert_allclose(big_coeffs, small_coeffs)
+
+    # This shape should have different coefficients, however, because it
+    # has a different aspecct ratio
+    long_rect = _rectangle(10, 90)
+    long_coeffs = efa.coefficients(long_rect, n_points, n_coeffs)
+
+    assert not np.allclose(long_coeffs, big_coeffs)
+    assert not np.allclose(long_coeffs, small_coeffs)
+
+
+def test_rotation_invariant():
+    """
+    Check we get the same coefficients for the same shape but rotated
+    """
+    h, w = 40, 50
+    orig = _rectangle(h, w, angle=0)
+    rotated = _rectangle(h, w, angle=45)
+
+    n_points, n_coeffs = 30, 5
+    orig_coeffs = efa.coefficients(orig, n_points, n_coeffs)
+    rot_coeffs = efa.coefficients(rotated, n_points, n_coeffs)
+
+    np.testing.assert_allclose(orig_coeffs, rot_coeffs)
+
+
+def test_translation_invariant():
+    """
+    Check we get the same coefficients for the same shape but translated
+    """
+    h, w = 40, 50
+    orig = _rectangle(h, w, angle=0)
+    translated = _rectangle(h, w, centre=(30, 30), angle=0)
+
+    n_points, n_coeffs = 30, 5
+    orig_coeffs = efa.coefficients(orig, n_points, n_coeffs)
+    translated_coeffs = efa.coefficients(translated, n_points, n_coeffs)
+
+    np.testing.assert_allclose(orig_coeffs, translated_coeffs)
+
+
+def test_reflection_invariant():
+    """
+    Check we get the same coefficients for the same shape but reflected
+    """
+    orig = _rectangle(40, 50)
+    reflected = np.fliplr(orig)
+
+    n_points, n_coeffs = 31, 5
+    orig_coeffs = efa.coefficients(orig, n_points, n_coeffs)
+    ref_coeffs = efa.coefficients(reflected, n_points, n_coeffs)
+
+    np.testing.assert_allclose(orig_coeffs, ref_coeffs)

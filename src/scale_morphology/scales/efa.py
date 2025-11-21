@@ -48,6 +48,8 @@ def _rotate(coeffs: np.ndarray) -> np.ndarray:
     Also normalises handedness such that coefficients traced in opposite directions
     give the same coefficients.
 
+    This is MUCH faster than the pyefd implementation as its fully vectorised.
+
     """
 
     # Step 1: check handedness of the contour
@@ -123,7 +125,30 @@ def reorder_by_distance(
     return np.roll(points, -start_idx, axis=0)
 
 
-def coefficients(binary_img: np.ndarray, n_points: int, order: int) -> None:
+def _coeffs(
+    points: tuple[np.ndarray, np.ndarray], com: tuple[float, float], order: int
+) -> np.ndarray:
+    """
+    Get the EFA coefficients from a set of points describing an outline.
+
+    Re-orders them to have a consistent start point, find the coefficients
+    and then rotates away and phase ambiguities.
+
+    :param points: [x, y] points
+    :param com: centre of mass of the input image
+    """
+    # Reorder the points to start in a consistent location
+    # Starting at the closest point to the centroid
+    x, y = reorder_by_distance(
+        np.array(points).T,
+        com[::-1],  # com is backwards (y, x)
+    ).T
+
+    coeffs = pyefd.elliptic_fourier_descriptors([x, y], order=order, normalize=False)
+    return _rotate(coeffs)
+
+
+def coefficients(binary_img: np.ndarray, n_points: int, order: int) -> np.ndarray:
     """
     Find the Elliptic Fourier expansion coefficients of an object in the given binary image.
 
@@ -145,16 +170,7 @@ def coefficients(binary_img: np.ndarray, n_points: int, order: int) -> None:
 
     x, y = points_around_edge(binary_img, n_points)
 
-    # Reorder the points to start in a consistent location
-    # Starting at the closest point to the centroid
-    centroid = center_of_mass(binary_img)
-    x, y = reorder_by_distance(
-        np.array([x, y]).T,
-        centroid[::-1],
-    ).T
-
-    coeffs = pyefd.elliptic_fourier_descriptors([x, y], order=order, normalize=False)
-    return _rotate(coeffs)
+    return _coeffs([x, y], center_of_mass(binary_img), order)
 
 
 def coeffs2points(coeffs, locus, *, n_pts=300):
