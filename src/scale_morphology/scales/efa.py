@@ -164,7 +164,9 @@ def _normalise(coeffs: np.ndarray, size: float) -> np.ndarray:
     return np.concatenate(([size], coeffs.flatten()[3:]))
 
 
-def coefficients(binary_img: np.ndarray, n_points: int, order: int) -> np.ndarray:
+def coefficients(
+    binary_img: np.ndarray, n_points: int, order: int, *, magnification: float = None
+) -> np.ndarray:
     """
     Find the Elliptic Fourier expansion coefficients of an object in the given binary image.
 
@@ -177,6 +179,23 @@ def coefficients(binary_img: np.ndarray, n_points: int, order: int) -> np.ndarra
     The contour begins at the point closest to the centroid of the object, which makes
     the coefficients consistent for shapes which differ by a rigid rotation.
 
+    :param binary_img: 2D uint8 numpy array containing a single object and no holes;
+                       background is 0; the object is 255
+    :param n_points: number of points to linearly interpolate around the edge of the object
+                     for our EFA calculation
+    :param order: order of harmonics to use for EFA. Each harmonic has 4 degrees of freedom
+                  (except the first, which has two; roughly)
+    :param magnification: if specified, an additional scale factor to multiply the scale's size
+                          by. Useful if some images were taken at a different resolution; e.g.
+                          if most images were taken with a 4.0x magnification, but some with 3.2x,
+                          then pass magnification=(4.0/3.2)
+
+    :returns: Flattened EFA coefficients, normalised and with rotational ambiguity removed.
+              The first element here is the size of the object (subject to any magnification).
+              The next element is the d_1 coefficient (a_1, b_1 and c_1) are always (1, 0, 0)
+              after our normalisation, so they are not included. The remaining elements are
+              a_2, b_2, c_2, d_2, a_3, ...
+
     """
     if measure.euler_number(binary_img) != 1:
         raise errors.HolesError(
@@ -184,11 +203,14 @@ def coefficients(binary_img: np.ndarray, n_points: int, order: int) -> np.ndarra
             f"{measure.euler_number(binary_img)}"
         )
 
+    if magnification is None:
+        magnification = 1
+
     x, y = points_around_edge(binary_img, n_points)
 
     coeffs = _coeffs([x, y], center_of_mass(binary_img), order)
 
-    return _normalise(coeffs, np.sum(binary_img) / 255)
+    return _normalise(coeffs, (magnification**2) * (np.sum(binary_img) / 255))
 
 
 def coeffs2points(coeffs, locus, *, n_pts=300):

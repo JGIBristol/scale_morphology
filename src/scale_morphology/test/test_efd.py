@@ -180,6 +180,24 @@ def test_normalise_coeffs():
     np.testing.assert_allclose(efa._normalise(coeffs, size), expected)
 
 
+def test_magnification(rotated_imgs):
+    """
+    Check we get the right size when we pass a magnification to efa.coefficients
+    """
+    img, _ = rotated_imgs
+
+    n_pts, order = 25, 5
+    initial_coeffs = efa.coefficients(img, n_pts, order)
+
+    # Let's pretend this one was taken at a magnification of 3
+    # This means the area of the object should be 9x smaller
+    smaller_coeffs = efa.coefficients(img, n_pts, order, magnification=1 / 3)
+
+    np.testing.assert_allclose(initial_coeffs[1:], smaller_coeffs[1:])
+
+    assert np.isclose(initial_coeffs[0], 9 * smaller_coeffs[0])
+
+
 # ==== Tests for the EFA inductive biases - things like size, rotation,
 # ==== handedness, location invariance
 
