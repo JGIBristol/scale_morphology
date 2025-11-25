@@ -165,6 +165,30 @@ def test_efa_circle():
     np.testing.assert_allclose(coeffs, expected_coeffs, atol=0.01)
 
 
+def test_efa_ellipse():
+    """
+    Check that the d_1 coeff is not +-1 for EFA on an ellipse
+
+    It should be for a circle, but we expect an ellipse to have some
+    elliptical component
+    """
+    # Generate some fake points
+    thetas = np.linspace(0, 2 * np.pi, 20000)
+    x = [2 * np.cos(t) for t in thetas]
+    y = [np.sin(t) for t in thetas]
+
+    order = 4
+    size = 150  # Fake size of our object
+
+    coeffs = efa._coeffs([x, y], (0, 0), order)
+    coeffs = efa._normalise(coeffs, size)
+
+    # Again, not sure why the d_1 coeff is negative here
+    assert not (
+        np.isclose(coeffs[1], 1.0, atol=0.01) or np.isclose(coeffs[1], -1.0, atol=0.01)
+    )
+
+
 def test_normalise_coeffs():
     """
     Scale coefficients, prepend size and remove redundant information
