@@ -157,11 +157,18 @@ def mutation(path: str) -> str:
     return "WT"
 
 
-def df(paths: list[str]) -> pd.DataFrame:
+def df(paths: list[str], drop_no_scale: bool = True) -> pd.DataFrame:
     """
-    Get dataframe of all the metadata
+    Get dataframe of all the metadata.
+
+    :param paths: list of paths pointing to each scale; the naming convention
+                  should be such that we can get the metadata from them.
+                  You shouldn't need to think too hard about this - look at the notebooks
+                  for examples of what the scales should be named.
+    :param drop_empty: whether to drop entries in the table that are tagged as containing
+                       no scale.
     """
-    return pd.DataFrame(
+    retval = pd.DataFrame(
         {
             "path": paths,
             "sex": (sex(p) for p in paths),
@@ -173,3 +180,7 @@ def df(paths: list[str]) -> pd.DataFrame:
             "no_scale": (no_scale(p) for p in paths),
         }
     )
+
+    if drop_no_scale:
+        return retval[~retval["no_scale"]]
+    return retval
