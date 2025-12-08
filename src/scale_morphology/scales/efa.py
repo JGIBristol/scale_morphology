@@ -3,6 +3,8 @@ Helpers for the EFA algorithm
 
 """
 
+import pathlib
+
 import pyefd
 import shapely
 import numpy as np
@@ -243,3 +245,44 @@ def coeffs2points(coeffs, locus, *, n_pts=300):
     )
 
     return xt, yt
+
+
+# It would be nicer if this operated on a list of images, instead of image paths, but
+# I think this is fine for now
+def elliptic_fourier_analysis(
+    scale_paths: list[str | pathlib.Path],
+    magnifications: np.ndarray,
+    *,
+    n_points: int,
+    order: int,
+    n_threads=8,
+) -> np.ndarray:
+    """
+    Find the EFA expansion from the images stored in the given paths.
+
+    This will read each image, fill any holes and remove small objects, then find the
+    Elliptic Fourier Descriptors from the above.
+    The magnification also needs to be provided - some scales were taken at different
+    magnifications, which needs to be accounted for by the EFA (one of the coefficients
+    encodes the scale's size).
+
+    :param scale_paths: an n-length list of paths containing the scales
+    :param magnification: the magnification at which each scale image was taken.
+    :param n_points: number of equally-spaced points to find on the outside of our object
+                     to define the shape
+    :param order: order of EFA analysis - intuitively, the number of ellipses. Using `order=k`
+                  will result in a dimensionality of `4k-2`, since we have `4k` raw coefficients
+                  but after rotation/normalisation we lose one from the ellipses' relative orientations
+                  and one from their absolute orientation.
+    :param n_threads: multithread the IO using this number of threads.
+                      If reading from the RDSF (a network drive), you might have best results
+                      by passing a large number e.g. 16 or 32
+
+    :return: an (N, k) shaped numpy array holding the coefficients for each scale.
+    :raises ValueError: if the magnitudes
+
+    """
+    # We probably actually passed a pandas series in
+    magnifications = np.array(magnifications)
+    if magnifications.ndim != 1 or len(magnifications) != len(scale_paths):
+        raise ValueError(f"Got {magnifications.shape=} but {len(scale_paths)=}")
