@@ -93,11 +93,11 @@ def _mag_regex():
 
 def magnification(path: str) -> float:
     """
-    Get the magnification from a filepath, if specified - else np.nan
+    Get the magnification from a filepath, if specified - else default to 4.0x
     """
     if match := _mag_regex().match(path):
         return float(match.group(1))
-    return np.nan
+    return 4.0
 
 
 @cache
@@ -160,6 +160,8 @@ def mutation(path: str) -> str:
 def df(paths: list[str], drop_no_scale: bool = True) -> pd.DataFrame:
     """
     Get dataframe of all the metadata.
+
+    The magnification defaults to 4.0x if not specified in the filepath.
 
     :param paths: list of paths pointing to each scale; the naming convention
                   should be such that we can get the metadata from them.
