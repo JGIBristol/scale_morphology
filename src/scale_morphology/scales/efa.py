@@ -272,7 +272,7 @@ def _fix_segmentation(segmentation_path: pathlib.Path | str):
 
 # It would be nicer if this operated on a list of images, instead of image paths, but
 # I think this is fine for now
-def elliptic_fourier_analysis(
+def run_analysis(
     scale_paths: list[str | pathlib.Path],
     magnifications: np.ndarray,
     *,
@@ -324,3 +324,11 @@ def elliptic_fourier_analysis(
                 )
             )
         )
+
+    # Rescale lengths in the images by the inverse of the magnification
+    coeffs = [
+        coefficients(scale, n_points, order, magnification=4 / magnification)
+        for scale, magnification in zip(pbar(scales), magnifications)
+    ]
+
+    return np.stack(coeffs)
