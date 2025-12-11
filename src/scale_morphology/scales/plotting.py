@@ -153,4 +153,7 @@ def pair_plot(
                 else:
                     _plot_kde_scatter(axis, x, y, labels, colour_lookup)
 
+                axis.set_xticks([])
+                axis.set_yticks([])
+
                 pbar.update(1)
