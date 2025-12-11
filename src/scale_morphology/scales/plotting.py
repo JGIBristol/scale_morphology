@@ -44,6 +44,7 @@ def kdeplot(
     data: np.ndarray,
     labels: pd.Series,
     colour_lookup: dict[np.float64, str],
+    normalise: bool,
 ):
     """
     Plot a smoothed 1d histogram of the data on an axis, splitting according to the labels
@@ -59,6 +60,7 @@ def kdeplot(
         fill=False,
         palette=palette,
         ax=axis,
+        common_norm=not normalise,
     )
     axis.set_xlabel("")
     axis.set_ylabel("")
@@ -103,7 +105,11 @@ def _plot_kde_scatter(
 
 
 def pair_plot(
-    reduced_coeffs: np.ndarray, grouping_df: pd.DataFrame, colours: list[str]
+    reduced_coeffs: np.ndarray,
+    grouping_df: pd.DataFrame,
+    colours: list[str],
+    *,
+    normalise: bool = False,
 ):
     """
     Plot a pair plot: a scatter plot of each PC (or LDA axis) against all the others,
@@ -114,6 +120,7 @@ def pair_plot(
                         If grouping by a single variable, this will be a dataframe holding a single
                         column.
     :param colours: the colour to use for each group.
+    :param normalise: whether to normalise the 1d histograms
 
     """
     n_row, n_col = grouping_df.shape
@@ -142,7 +149,7 @@ def pair_plot(
 
                 # Plot histograms on the diagonal
                 if i == j:
-                    kdeplot(axis, x, labels, colour_lookup)
+                    kdeplot(axis, x, labels, colour_lookup, normalise)
                 else:
                     _plot_kde_scatter(axis, x, y, labels, colour_lookup)
 
