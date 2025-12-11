@@ -109,6 +109,7 @@ def pair_plot(
     grouping_df: pd.DataFrame,
     colours: list[str],
     *,
+    axis_label: str,
     normalise: bool = False,
 ):
     """
@@ -120,6 +121,7 @@ def pair_plot(
                         If grouping by a single variable, this will be a dataframe holding a single
                         column.
     :param colours: the colour to use for each group.
+    :param axis_label: what to label the axes; probably either "PC" or "LDA vector"
     :param normalise: whether to normalise the 1d histograms
 
     """
@@ -157,3 +159,9 @@ def pair_plot(
                 axis.set_yticks([])
 
                 pbar.update(1)
+
+    for i, axis in enumerate(axes[-1]):
+        axis.set_xlabel(f"{axis_label} {i+1}")
+
+    for i, axis in enumerate(axes[:, 0]):
+        axis.set_ylabel(f"{axis_label} {i+1}")
