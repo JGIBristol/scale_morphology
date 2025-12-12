@@ -140,7 +140,7 @@ def pair_plot(
     colour_lookup = dict(zip(np.unique(labels), colours))
 
     # Init a figure
-    fig, axes = plt.subplots(n_dim, n_dim, figsize=(20, 20))
+    fig, axes = plt.subplots(n_dim, n_dim, figsize=(2 * n_dim, 2 * n_dim))
 
     with tqdm(total=n_dim**2) as pbar:
         pbar.set_description("Plotting pair plot")
