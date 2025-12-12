@@ -8,6 +8,7 @@ import numpy as np
 from tqdm.notebook import tqdm
 import matplotlib.pyplot as plt
 from matplotlib import colors
+from matplotlib.patches import Patch
 from scipy.stats import gaussian_kde
 
 from . import efa
@@ -160,8 +161,24 @@ def pair_plot(
 
                 pbar.update(1)
 
+    # Set labels along bottom/left edges
     for i, axis in enumerate(axes[-1]):
         axis.set_xlabel(f"{axis_label} {i+1}")
-
     for i, axis in enumerate(axes[:, 0]):
         axis.set_ylabel(f"{axis_label} {i+1}")
+
+    # Add a legend
+    fig.legend(
+        handles=[
+            Patch(
+                facecolor=colour_lookup[idx],
+                edgecolor="k",
+                linewidth=0.5,
+                label=str(unique),
+            )
+            for idx, unique in zip(np.unique(labels), uniques, strict=True)
+        ],
+        loc="center right",
+        bbox_to_anchor=(1.02, 0.5),
+        title="Group",
+    )
