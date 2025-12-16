@@ -44,24 +44,3 @@ If you're on Windows, I recommend using installing WSL
 (Windows Subsystem for Linux), cloning this project there and
 using the Linux CLI for this project.
 </details>
-
-### Configuration
-To run these scripts, you'll need to set a few things in the configuration file:
-1. The path to the input data - `binary_img_dir`. This should contain binary images of the segmented scales
-
-I'm envisioning three scripts...
-
-```
-uv run efa
-```
-Run the Elliptic Fourier Analysis on the scales.
-
-```
-uv run autoencoder
-```
-Train and perform embedding with a simple autoencoder.
-
-```
-uv run vae
-```
-Train and perform embedding with a variational autoencoder.
