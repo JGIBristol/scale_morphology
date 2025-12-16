@@ -10,6 +10,11 @@ import argparse
 from scale_morphology.scales import read, dim_reduction
 from scale_morphology.scales import dashboard
 
+assert (
+    False
+), "This script is deprecated, I haven't implemented the dashboard for Carran's scales."
+"See below for an idea of how to do it, though - there might also be some other dashboard code around"
+
 
 def main(
     *,
