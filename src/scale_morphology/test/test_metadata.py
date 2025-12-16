@@ -78,10 +78,13 @@ def test_get_magnification():
         )
         == 3.2
     )
-    assert np.isnan(
+
+    # Check that we default to 4.0
+    assert (
         metadata.magnification(
             "Fish3_D10reg_scale001__OSX_mcherry_2021_4months_ALP_segmentation.tif"
         )
+        == 4.0
     )
 
 

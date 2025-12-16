@@ -3,14 +3,21 @@ Helpers for the EFA algorithm
 
 """
 
+import pathlib
+from concurrent.futures import ThreadPoolExecutor
+
 import pyefd
 import shapely
+import tifffile
 import numpy as np
+from tqdm.notebook import tqdm
 from skimage import measure
-from scipy.ndimage import center_of_mass
+from skimage.measure import euler_number
+from scipy.ndimage import center_of_mass, binary_fill_holes
 
 
 from scale_morphology.scales import errors
+from scale_morphology.scales.segmentation import largest_connected_component
 
 
 def points_around_edge(
@@ -243,3 +250,85 @@ def coeffs2points(coeffs, locus, *, n_pts=300):
     )
 
     return xt, yt
+
+
+def _fix_segmentation(segmentation_path: pathlib.Path | str):
+    """
+    Read + fix segmentation
+    """
+    scale = tifffile.imread(segmentation_path)
+    if euler_number(scale) != 1:
+        # Fill holes
+        scale = binary_fill_holes(scale)
+        # Remove small objects
+        scale = (largest_connected_component(scale) * 255).astype(np.uint8)
+
+        # It's possible we might have removed everything, so just make sure we haven't here
+        if euler_number(scale) != 1:
+            raise errors.HolesError(f"Got {euler_number(scale)=}")
+
+    return scale
+
+
+# It would be nicer if this operated on a list of images, instead of image paths, but
+# I think this is fine for now
+def run_analysis(
+    scale_paths: list[str | pathlib.Path],
+    magnifications: np.ndarray,
+    *,
+    n_points: int,
+    order: int,
+    n_threads=8,
+    show_progress: bool = True,
+) -> np.ndarray:
+    """
+    Find the EFA expansion from the images stored in the given paths.
+
+    This will read each image, fill any holes and remove small objects, then find the
+    Elliptic Fourier Descriptors from the above.
+    The magnification also needs to be provided - some scales were taken at different
+    magnifications, which needs to be accounted for by the EFA (one of the coefficients
+    encodes the scale's size).
+
+    :param scale_paths: an n-length list of paths containing the scales
+    :param magnification: the magnification at which each scale image was taken.
+    :param n_points: number of equally-spaced points to find on the outside of our object
+                     to define the shape
+    :param order: order of EFA analysis - intuitively, the number of ellipses. Using `order=k`
+                  will result in a dimensionality of `4k-2`, since we have `4k` raw coefficients
+                  but after rotation/normalisation we lose one from the ellipses' relative orientations
+                  and one from their absolute orientation.
+    :param n_threads: multithread the IO using this number of threads.
+                      If reading from the RDSF (a network drive), you might have best results
+                      by passing a large number e.g. 16 or 32
+    :param show_progress: show a progress bar (intended for a Jupyter notebook)
+
+    :return: an (N, k) shaped numpy array holding the coefficients for each scale.
+    :raises ValueError: if the magnitudes
+    :raises HolesError: if, even after correcting the image, we don't have a single object with no holes
+
+    """
+    # We probably actually passed a pandas series in
+    magnifications = np.array(magnifications)
+    if magnifications.ndim != 1 or len(magnifications) != len(scale_paths):
+        raise ValueError(f"Got {magnifications.shape=} but {len(scale_paths)=}")
+
+    pbar = tqdm if show_progress else lambda x, **kw: x
+
+    with ThreadPoolExecutor(max_workers=n_threads) as executor:
+        scales = np.array(
+            list(
+                pbar(
+                    executor.map(_fix_segmentation, scale_paths),
+                    total=len(scale_paths),
+                )
+            )
+        )
+
+    # Rescale lengths in the images by the inverse of the magnification
+    coeffs = [
+        coefficients(scale, n_points, order, magnification=4 / magnification)
+        for scale, magnification in zip(pbar(scales), magnifications)
+    ]
+
+    return np.stack(coeffs)
