@@ -1,0 +1,43 @@
+name: Run Example Workflow
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  Run:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Set up environment
+      uses: astral-sh/setup-uv@v6
+      with:
+        version: "latest"
+
+    - name: Install dependencies
+      run: uv sync
+    
+    - name: Run Script
+      run: uv run src/scale_morphology/test/example_workflow.py
+
+    - name: Check out my other private repo
+      uses: actions/checkout@v2
+      with:
+        path: other_repo
+        ref: example-images
+
+    - name: Cache plots
+    # Checkout my plot storage branch, amend the commit on it to contain the lastest plots, push
+      run: |
+        cd other_repo
+        mv ../example_LDA.png ../example_pca.png ../example_shapes.png .
+        git config user.name "Automated Commit"
+        git config user.email "none@none.com"
+        git add example_LDA.png example_pca.png example_shapes.png
+        git commit --amend -m "Plots cached on: `date`"
+        git push -f origin example-images
+        git gc

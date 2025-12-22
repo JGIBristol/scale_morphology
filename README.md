@@ -44,3 +44,21 @@ If you're on Windows, I recommend using installing WSL
 (Windows Subsystem for Linux), cloning this project there and
 using the Linux CLI for this project.
 </details>
+
+## Example Workflow
+The real files used for the analysis live in [this directory](./src/notebooks/carran_analysis/),
+but you will need to mount the RDSF to run these.
+
+An example workflow that does not require the RDSF is in
+[src/scale_morphology/test/example_workflow.py](./src/scale_morphology/test/example_workflow.py): this runs through
+the EFA/PDA/LDA workflow using a toy dataset of different
+shapes:
+![Shapes](/../example-images/example_shapes.png)
+
+We perform EFA on these, and can find the (e.g.) ten most
+descriptive axes in terms of the EFA coefficients:
+![PCA](/../example-images/example_pca.png)
+
+We then finally run LDA on the PCA coefficients; this is far less noisy and prone to overfitting than running LDA on the
+raw EFA coefficients, but keeps most of the variation:
+![LDA](/../example-images/example_LDA.png)
