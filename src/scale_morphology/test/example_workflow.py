@@ -114,10 +114,14 @@ def main():
 
     # Plot both of these
     plotting.pair_plot(pca_coeffs, label_df, colours, axis_label="PC")
-    plt.gcf().savefig("example_pca.png")
+    fig = plt.gcf()
+    fig.tight_layout()
+    fig.savefig("example_pca.png")
 
     plotting.pair_plot(lda_coeffs, label_df, colours, axis_label="LD Axis")
-    plt.gcf().savefig("example_LDA.png")
+    fig = plt.gcf()
+    fig.tight_layout()
+    fig.savefig("example_LDA.png")
 
     _plot_shapes(triangles, rectangles, ellipses)
 

@@ -61,4 +61,5 @@ descriptive axes in terms of the EFA coefficients:
 
 We then finally run LDA on the PCA coefficients; this is far less noisy and prone to overfitting than running LDA on the
 raw EFA coefficients, but keeps most of the variation:
+
 ![LDA](/../example-images/example_LDA.png)
