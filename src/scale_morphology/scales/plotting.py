@@ -145,7 +145,9 @@ def pair_plot(
     colour_lookup = dict(zip(np.unique(labels), colours))
 
     # Init a figure
-    fig, axes = plt.subplots(n_dim, n_dim, figsize=(2 * n_dim, 2 * n_dim))
+    # Make it bigger if it would be small
+    figsize = (2 * n_dim, 2 * n_dim) if n_dim > 3 else (9, 9)
+    fig, axes = plt.subplots(n_dim, n_dim, figsize=figsize)
 
     with tqdm(total=n_dim**2) as pbar:
         pbar.set_description("Plotting pair plot")

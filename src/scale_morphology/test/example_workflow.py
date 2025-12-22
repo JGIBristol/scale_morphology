@@ -60,18 +60,18 @@ def _shape(shape_name: str, rng: np.random.Generator) -> np.ndarray:
     return (img * 255).astype(np.uint8)
 
 
-def _plot_shapes(triangles, rectangles, ellipses):
+def _plot_shapes(triangles, rectangles, ellipses, colours):
     """
     Plot the shapes we used as an example
     """
-    kw = {"cmap": "binary"}
+
     fig, axes = plt.subplots(3, 5, figsize=(15, 9))
     for axis, triangle in zip(axes[0], triangles):
-        axis.imshow(triangle, **kw)
+        axis.imshow(triangle, cmap=plotting.clear2colour_cmap(colours[0]))
     for axis, rectangle in zip(axes[1], rectangles):
-        axis.imshow(rectangle, **kw)
+        axis.imshow(rectangle, cmap=plotting.clear2colour_cmap(colours[1]))
     for axis, ellipse in zip(axes[2], ellipses):
-        axis.imshow(ellipse, **kw)
+        axis.imshow(ellipse, cmap=plotting.clear2colour_cmap(colours[2]))
     for axis in axes.flat:
         axis.set_xticklabels([])
         axis.set_yticklabels([])
@@ -120,10 +120,9 @@ def main():
 
     plotting.pair_plot(lda_coeffs, label_df, colours, axis_label="LD Axis")
     fig = plt.gcf()
-    fig.tight_layout()
     fig.savefig("example_LDA.png")
 
-    _plot_shapes(triangles, rectangles, ellipses)
+    _plot_shapes(triangles, rectangles, ellipses, colours)
 
 
 if __name__ == "__main__":
