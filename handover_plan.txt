@@ -1,0 +1,13 @@
+[ ] Put the segmentation editing script that I sent to Carran into the repo, with instructions
+
+[ ] Refactor to take inputs from a config file
+[ ] Write down the thing with the other solver - it might make it more stable
+[ ] Write down the task to scale the size feature so it doesnt dominate the PCA
+[ ] Write down a task to segment the SOST scales too
+[ ] Write down a task for running the analysis but WITHOUT size information - instead, add size in as a feature after PCA
+[ ] Write down plan for sensitivity study - check how sensitive the result is to the configuration
+[ ] Notebook or something on the EFA process/conventions
+    [ ] Plot scale outlines
+    [ ] Write about removing rotation, size, dropping the (1, 0, 0) from the start
+
+[ ] Document the existing stuff
