@@ -2507,6 +2507,7 @@ dependencies = [
     { name = "seaborn" },
     { name = "segment-anything" },
     { name = "shapely" },
+    { name = "tifffile" },
     { name = "torch" },
     { name = "torchvision" },
     { name = "tqdm" },
@@ -2538,6 +2539,7 @@ requires-dist = [
     { name = "seaborn", specifier = ">=0.13.2" },
     { name = "segment-anything", specifier = ">=1.0" },
     { name = "shapely", specifier = ">=2.0.7" },
+    { name = "tifffile", specifier = "==2025.12.20" },
     { name = "torch", specifier = ">=2.6.0" },
     { name = "torchvision", specifier = ">=0.21.0" },
     { name = "tqdm", specifier = ">=4.67.1" },
@@ -2912,14 +2914,14 @@ wheels = [
 
 [[package]]
 name = "tifffile"
-version = "2023.2.28"
+version = "2025.12.20"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "numpy" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/b9/0b/e8123041ebdc361bd5b7b1a9613be4adcbf583befa0a2fc407bc0e71878e/tifffile-2023.2.28.tar.gz", hash = "sha256:2d2baba8dea6609f553fe61853db9a61f715d60ba3bce6a20b5a1ab72407dfed", size = 336265 }
+sdist = { url = "https://files.pythonhosted.org/packages/f8/a6/85e8ecfd7cb4167f8bd17136b2d42cba296fbc08a247bba70d5747e2046a/tifffile-2025.12.20.tar.gz", hash = "sha256:cb8a4fee327d15b3e3eeac80bbdd8a53b323c80473330bcfb99418ee4c1c827f", size = 373364 }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/df/30/b3a70a98b1be0ef881593b7f0ea7fd2aed9f5f3440e90547aa79000a8792/tifffile-2023.2.28-py3-none-any.whl", hash = "sha256:8357cd8ccbdd4378ad4d6b84ffe3ab15b1d96630b1719f576d4de386f45546f1", size = 216374 },
+    { url = "https://files.pythonhosted.org/packages/1b/fe/e59859aa1134fac065d36864752daf13215c98b379cb5d93f954dc0ec830/tifffile-2025.12.20-py3-none-any.whl", hash = "sha256:bc0345a20675149353cfcb3f1c48d0a3654231ee26bd46beebaab4d2168feeb6", size = 232031 },
 ]
 
 [[package]]
