@@ -15,6 +15,10 @@ It's a bit fiddly - we need to perform the EFA correctly (choose the right numbe
 harmonics), and
 we need to find the right number of PCs to keep (using lots keeps the most information but also keeps a lot of noise).
 
+There's two files here:
+- `verbose_efa_analysis.ipynb`: contains lots of extra steps and explanations as to what's going on
+- `simple_efa_analysis.ipynb`: just does the EFA/PCA/LDA and makes some plots.
+
 #### Future directions?
 It's possible that the interesting shape variation might be hidden in the high-frequency harmonics that are thrown away by the PCA.
 This has been addressed in this paper: https://arxiv.org/html/2507.01009v1#S3, where they basically train a model on the distance

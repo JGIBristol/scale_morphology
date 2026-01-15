@@ -10,6 +10,7 @@ import pandas as pd
 import seaborn as sns
 from tqdm.notebook import tqdm
 from scipy.stats import gaussian_kde
+from sklearn.base import BaseEstimator
 
 import matplotlib.pyplot as plt
 from matplotlib import colors
@@ -307,3 +308,35 @@ def shape_plot(
         axis.set_xlabel(f"{axis_label} {i+1}")
     for i, axis in enumerate(axes[:, 0]):
         axis.set_ylabel(f"{axis_label} {i+1}")
+
+
+def heatmap(scalings):
+    """
+    Plot a heatmap showing component loadings in terms of features
+    """
+    fig, axis = plt.subplots(figsize=(10, 5))
+
+    im = axis.matshow(
+        scalings.T,
+        aspect="auto",
+        cmap="seismic",
+        norm=colors.CenteredNorm(vcenter=0.0),
+    )
+
+    n_components = scalings.shape[0]
+    axis.set_xticks(range(n_components), range(1, n_components + 1))
+    axis.set_title("Feature contribution to each component")
+    axis.set_ylabel("Component")
+    axis.set_xlabel("Feature")
+    fig.colorbar(im, ax=axis)
+
+
+def feature_importance(estimator: BaseEstimator):
+    """
+    Plot feature importance of PCA or LDA
+    """
+    fig, axis = plt.subplots(figsize=(8, 4))
+
+    percent_importances = estimator.explained_variance_ratio_
+    axis.bar(np.arange(len(percent_importances)), percent_importances)
+    axis.set_yscale("log")
