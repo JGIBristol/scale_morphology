@@ -149,6 +149,8 @@ def pair_plot(
     # Make it bigger if it would be small
     figsize = (2 * n_dim, 2 * n_dim) if n_dim > 3 else (9, 9)
     fig, axes = plt.subplots(n_dim, n_dim, figsize=figsize)
+    if n_dim == 1:
+        axes = np.array([[axes]])
 
     with tqdm(total=n_dim**2) as pbar:
         pbar.set_description("Plotting pair plot")
