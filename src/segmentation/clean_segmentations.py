@@ -17,20 +17,48 @@ import napari
 import tifffile
 import numpy as np
 
-cfg_path = pathlib.Path("config.yaml")
+cfg_path = pathlib.Path(__file__).resolve().parent / "config.yaml"
 with open(cfg_path, "r") as f:
     cfg = yaml.safe_load(f)
 
-img_dir = pathlib.Path(cfg["input_tif_dir"]).resolve()
-mask_dir = pathlib.Path(cfg["auto_segmentation_dir"]).resolve()
+# The image dir contains lots of subfolders that each contain images
+# The segmentation names are based on these but dont have the same directory structure
+# So, we'll read in all the image paths and all the segmentation paths
+# And match them up together by seeing which segmentation filename has the same ending as
+# each image filename.
+
+img_dir = pathlib.Path(cfg["input_tif_dir"]).expanduser()
+mask_dir = pathlib.Path(cfg["auto_segmentation_dir"]).expanduser()
 assert img_dir.is_dir()
 assert mask_dir.is_dir()
 
-cleaned_mask_dir = img_dir / "segmentations_cleaned"
+cleaned_mask_dir = img_dir.parent / "segmentations_cleaned"
 cleaned_mask_dir.mkdir(exist_ok=True)
 
-img_paths = sorted(list(img_dir.glob("*.tif")))
-mask_paths = [mask_dir / (name.stem + "_segmentation.tif") for name in img_paths]
+all_img_dirs = [d for d in img_dir.glob("**/*") if d.is_dir()]
+img_paths = []
+for d in all_img_dirs:
+    if "D21Reg" not in str(d):
+        img_paths += list(d.glob("*.tif"))
+
+
+all_mask_paths = list(mask_dir.glob("*.tif"))
+assert len(all_mask_paths) == len(img_paths), f"{len(all_mask_paths)=}, {len(img_paths)=}"
+
+
+# Get the corresponding masks
+def get_mask(img_path: pathlib.Path, l: list[pathlib.Path]):
+    """Get the name of the mask given an image"""
+    matching_masks = [m for m in l if img_path.name in m.name]
+
+    if len(matching_masks) != 1:
+        print(f"{len(matching_masks)=}:\n\t{matching_masks}")
+    (retval,) = matching_masks
+
+    return retval
+
+
+mask_paths = [get_mask(i, all_mask_paths) for i in img_paths]
 
 # Which image to start at
 start = 0
