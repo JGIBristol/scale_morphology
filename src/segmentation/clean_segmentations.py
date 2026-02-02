@@ -43,7 +43,9 @@ for d in all_img_dirs:
 
 
 all_mask_paths = list(mask_dir.glob("*.tif"))
-assert len(all_mask_paths) == len(img_paths), f"{len(all_mask_paths)=}, {len(img_paths)=}"
+assert len(all_mask_paths) == len(
+    img_paths
+), f"{len(all_mask_paths)=}, {len(img_paths)=}"
 
 
 # Get the corresponding masks
@@ -81,7 +83,10 @@ def load_index(i):
 def save_current():
     name = mask_paths[state["i"]].name
     out_path = cleaned_mask_dir / name
-    tifffile.imwrite(out_path, (state["labels"].data > 0).astype(np.uint8) * 255)
+    tifffile.imwrite(
+        pathlib.Path(str(out_path).replace(",", "")),
+        (state["labels"].data > 0).astype(np.uint8) * 255,
+    )
     print(f"Saved {out_path}")
 
 
