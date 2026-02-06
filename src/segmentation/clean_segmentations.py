@@ -110,3 +110,4 @@ def _prev(v):
 
 
 load_index(state["i"])
+napari.run()
