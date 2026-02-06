@@ -47,7 +47,7 @@ assert len(all_mask_paths) == len(
 # Get the corresponding masks
 def get_mask(img_path: pathlib.Path) -> pathlib.Path:
     """Get the name of the mask given an image"""
-    return img_path.with_name(img_path.name + "_segmentation.tif")
+    return img_path.with_stem(img_path.stem + "_segmentation")
 
 
 mask_paths = [get_mask(i) for i in img_paths]
