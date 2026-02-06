@@ -50,7 +50,7 @@ def get_mask(img_path: pathlib.Path) -> pathlib.Path:
     return img_path.with_name(img_path.name + "_segmentation")
 
 
-mask_paths = [get_mask(i, all_mask_paths) for i in img_paths]
+mask_paths = [get_mask(i) for i in img_paths]
 
 for mask in mask_paths:
     assert mask.exists()
