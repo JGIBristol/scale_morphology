@@ -53,7 +53,7 @@ def get_mask(img_path: pathlib.Path) -> pathlib.Path:
 mask_paths = [get_mask(i) for i in img_paths]
 
 for mask in mask_paths:
-    assert mask.exists()
+    assert mask.exists(), mask
 
 # Which image to start at
 start = 0
