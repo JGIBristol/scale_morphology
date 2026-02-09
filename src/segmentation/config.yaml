@@ -1,2 +1,2 @@
-input_tif_dir: "~/zebrafish_rdsf/Carran/Postgrad/ALP images/WT/"
-auto_segmentation_dir: "~/zebrafish_rdsf/Carran/Postgrad/ALP images/segmentations/"
+input_tif_dir: "~/zebrafish_rdsf/Carran/Postgrad/ALP_WT_flattened/"
+auto_segmentation_dir: "~/zebrafish_rdsf/Carran/Postgrad/ALP_WT_flattened_segmentations/"

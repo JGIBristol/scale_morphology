@@ -36,31 +36,24 @@ cleaned_mask_dir = img_dir.parent / "segmentations_cleaned"
 cleaned_mask_dir.mkdir(exist_ok=True)
 
 all_img_dirs = [d for d in img_dir.glob("**/*") if d.is_dir()]
-img_paths = []
-for d in all_img_dirs:
-    if "D21Reg" not in str(d):
-        img_paths += list(d.glob("*.tif"))
-
-
+img_paths = list(img_dir.glob("*.tif"))
 all_mask_paths = list(mask_dir.glob("*.tif"))
+
 assert len(all_mask_paths) == len(
     img_paths
 ), f"{len(all_mask_paths)=}, {len(img_paths)=}"
 
 
 # Get the corresponding masks
-def get_mask(img_path: pathlib.Path, l: list[pathlib.Path]):
+def get_mask(img_path: pathlib.Path) -> pathlib.Path:
     """Get the name of the mask given an image"""
-    matching_masks = [m for m in l if img_path.name in m.name]
-
-    if len(matching_masks) != 1:
-        print(f"{len(matching_masks)=}:\n\t{matching_masks}")
-    (retval,) = matching_masks
-
-    return retval
+    return mask_dir / img_path.with_stem(img_path.stem + "_segmentation").name
 
 
-mask_paths = [get_mask(i, all_mask_paths) for i in img_paths]
+mask_paths = [get_mask(i) for i in img_paths]
+
+for mask in mask_paths:
+    assert mask.exists(), mask
 
 # Which image to start at
 start = 0
@@ -117,3 +110,4 @@ def _prev(v):
 
 
 load_index(state["i"])
+napari.run()

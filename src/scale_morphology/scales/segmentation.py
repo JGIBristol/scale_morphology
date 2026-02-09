@@ -144,7 +144,7 @@ def sample_pos_points(m, n=10):
 
 
 @cache
-def _sam(model_type: str, model_checkpoint: pathlib.Path, device: str) -> SamPredictor:
+def _sam(model_type: str, model_checkpoint: str, device: str) -> SamPredictor:
     """
     Get the model
     """
@@ -182,7 +182,7 @@ def sam_segmentation(
     # Turn the greyscale image back to RGB i guess
     grey = cv2.cvtColor(enhanced_img.astype(np.float32), cv2.COLOR_GRAY2RGB)
 
-    model = _sam(model_type, model_checkpoint, device)
+    model = _sam(model_type, str(model_checkpoint), device)
     model.set_image(grey)
 
     masks, scores, _ = model.predict(
