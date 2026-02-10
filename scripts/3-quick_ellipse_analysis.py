@@ -46,10 +46,7 @@ def _plot_metadata_bars(mdata: pd.DataFrame, output_dir: pathlib.Path) -> None:
 
 
 def _get_ellipse(
-    img: np.ndarray,
-    magnification: float,
-    plot_path: pathlib.Path | None,
-    output_dir: pathlib.Path,
+    img: np.ndarray, magnification: float, plot_path: pathlib.Path | None
 ) -> tuple[float, float]:
     """
     Fit an ellipse to an image.
@@ -82,7 +79,7 @@ def _get_ellipse(
         # Convert to BGR for colored ellipse drawing
         img_color = cv2.cvtColor(img, cv2.COLOR_GRAY2BGR)
         cv2.ellipse(img_color, ellipse, (0, 200, 0), 5)
-        cv2.imwrite(str(output_dir / plot_path), img_color)
+        cv2.imwrite(str(plot_path), img_color)
 
     return size, aspect_ratio
 
@@ -148,6 +145,7 @@ def main(
     output_dir.mkdir(exist_ok=True, parents=True)
 
     if plot_dir:
+        plot_dir = output_dir / plot_dir
         plot_dir.mkdir(exist_ok=True, parents=True)
 
     scale_paths = list(str(p) for p in segmentation_dir.glob("*.tif"))
@@ -163,9 +161,9 @@ def main(
         plot_path = (
             None
             if plot_dir is None
-            else output_dir / plot_dir / str(pathlib.Path(path).stem + ".png")
+            else plot_dir / str(pathlib.Path(path).stem + ".png")
         )
-        s, a = _get_ellipse(tifffile.imread(path), magnification, plot_path, output_dir)
+        s, a = _get_ellipse(tifffile.imread(path), magnification, plot_path)
         sizes.append(s)
         aspect_ratios.append(a)
 
