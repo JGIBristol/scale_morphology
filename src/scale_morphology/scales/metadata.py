@@ -112,7 +112,7 @@ def magnification(stem: str) -> float:
     """
     if match := _mag_regex().match(stem):
         return float(match.group(1))
-    raise ValueError(f"No magnification found for\n{path}")
+    raise ValueError(f"No magnification found for\n{stem}")
 
 
 @cache

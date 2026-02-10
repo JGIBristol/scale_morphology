@@ -2,6 +2,7 @@
 Test the metadata reading fcns
 """
 
+import pytest
 import numpy as np
 import pandas as pd
 
@@ -62,7 +63,8 @@ def test_get_stain():
     """
     assert (
         metadata.stain(
-            "Fish1_male_D10reg_scale004__2022_1year6months_OMD_ALP_segmentation.tif"
+            "Fish1_male_D10reg_scale004__2022_1year6months_OMD_ALP_segmentation.tif",
+            default_stain=None,
         )
         == "ALP"
     )
@@ -74,18 +76,16 @@ def test_get_magnification():
     """
     assert (
         metadata.magnification(
-            "Fish1_male_Onto_3.2X_scale006__3year4months_ALP_segmentation.tif"
+            "12M_(3.2x)_Fish1_male_Onto_3.2X_scale006__3year4months_ALP_segmentation.tif"
         )
         == 3.2
     )
 
-    # Check that we default to 4.0
-    assert (
+    # Check that we raise an error
+    with pytest.raises(ValueError):
         metadata.magnification(
             "Fish3_D10reg_scale001__OSX_mcherry_2021_4months_ALP_segmentation.tif"
         )
-        == 4.0
-    )
 
 
 def test_get_growth():
@@ -169,7 +169,7 @@ def test_df():
     """
     Check we build up a dataframe of metadata correctly
     """
-    name = "Fish1_male_Onto_3.2X_scale006__3year4months_ALP_segmentation.tif"
+    name = "40M_(3.2x)_Fish1_male_Onto_scale006__3year4months_ALP_segmentation.tif"
     expected = pd.DataFrame(
         {
             "path": [name],
