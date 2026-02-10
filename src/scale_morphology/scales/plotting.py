@@ -98,7 +98,7 @@ def _plot_kde_scatter(
     for label in unique_labels:
         mask = labels == label
         if mask.sum() < 2:
-            raise ValueError("KDE needs at least 2 points")
+            raise ValueError(f"KDE needs at least 2 points, got {mask.sum()} for {label}")
 
         data = np.vstack([x_coeffs[mask], y_coeffs[mask]])
         kde = gaussian_kde(data)
