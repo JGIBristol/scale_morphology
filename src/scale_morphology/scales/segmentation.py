@@ -47,6 +47,16 @@ def largest_connected_component(binary_array):
     return _largest_connected_component(binary_array)
 
 
+def preprocess_greyscale(grey_img):
+    """
+    Preprocess confocal img
+    """
+    blurred = gaussian(grey_img, sigma=3)
+    # Giant kernel seems to work best, since the scale is also very large
+    # Unfortunately this does make things slow
+    return equalize_adapthist(blurred, kernel_size=2001)
+
+
 def preprocess_img(img: np.ndarray) -> np.ndarray:
     """
     Blurs + enhances contrast.
@@ -54,10 +64,7 @@ def preprocess_img(img: np.ndarray) -> np.ndarray:
     Used as input for both the rough and SAM segmentation.
     """
     grey = rgb2gray(img)
-    blurred = gaussian(grey, sigma=3)
-    # Giant kernel seems to work best, since the scale is also very large
-    # Unfortunately this does make things slow
-    return equalize_adapthist(blurred, kernel_size=2001)
+    return preprocess_greyscale(grey)
 
 
 def _clear_border_keep_large(img):
