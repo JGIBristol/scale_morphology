@@ -119,6 +119,36 @@ analysis.
 
 </details>
 
+<details>
+<summary>Step 3: run a quick analysis</summary>
+
+### Quick Analysis: Size & Aspect Ratio
+We care about the shape of our scales; a simple way to quantify these
+is by taking some simple features (size and aspect ratio) and plotting
+them on a scatter plot.
+
+To do this, starting from a directory of cleaned segmentations:
+```
+uv run scripts/3-quick_ellipse_analysis.py my_clean_seg_dir/ sex
+```
+
+#### Metadata (sex, age, etc.)
+When making these plots, we need to somehow find the sex/age/onto-regen status/... of the fish.
+We do this by looking at the filename - the scales (usually)
+follow a naming convention that allows us to extract the
+
+If you only want to run on a subset of the data (e.g plot a scatter
+plot of age showing only female fish), you'll have to change the
+source code to just pick out the right scales for you.
+It isn't a difficult change, but it still does require changing the 
+code.
+
+</details>
+
+<details>
+<summary>Step 4: run the EFA analysis</summary>
+</details>
+
 ## Other bits
 <details>
 <summary>New to uv?</summary>

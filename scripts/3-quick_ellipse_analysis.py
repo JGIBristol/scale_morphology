@@ -238,11 +238,13 @@ if __name__ == "__main__":
         "Massively slows things down, but useful for debugging. Relative to output-dir",
         default=None,
     )
+
+    default_out_dir = "outputs/3-quick_ellipse_analysis/"
     parser.add_argument(
         "--output-dir",
         type=pathlib.Path,
-        help="Where outputs get stored",
-        default="outputs/3-quick_ellipse_analysis/",
+        help=f"Where outputs get stored. Defaults to {default_out_dir}.",
+        default=default_out_dir,
     )
 
     main(**vars(parser.parse_args()))
