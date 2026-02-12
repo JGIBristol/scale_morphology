@@ -84,6 +84,41 @@ It might not work well.
 
 </details>
 
+<details>
+<summary>Step 2: cleaning segmentations</summary>
+
+### Cleaning Segmentations
+Once you have some rough segmentations by running step 1, you will want to clean
+them. From experience, around 10% of the automatic segmentation masks will have
+some problem that needs to be corrected - this might be because the AI model
+misidentified the object in the image, because the boundary was not clear or
+because some other object (a bubble, hair, blob of loose dye) got caught up in
+the segmentation too.
+
+This script will open a GUI for interactively cleaning the scale segmentations:
+it opens a MS-paint like interface where you can draw/erase/fill/etc. the
+segmentation mask in an interactive way.
+
+This is what it looks like:
+
+![Example Scale Cleaning GUI](./docs/resources/readme_figs/napari_gui.png)
+
+To open the GUI, run:
+```
+uv run scripts/2-clean_segmentations.py --img_dir my_img_dir/ --mask_dir my_mask_dir --output_dir my_output_dir/
+```
+
+You will need to run this **locally** - i.e. on your laptop, not on a remote 
+server like `scampi` (since it might not have a display).
+It's probably possible to get this to work on a remote machine with X11
+forwarding, but I haven't tried.
+
+Once you have run this and cleaned the segmentations, you should have a
+directory of nice clean segmentations. This is what we will use for the
+analysis.
+
+</details>
+
 ## Other bits
 <details>
 <summary>New to uv?</summary>
