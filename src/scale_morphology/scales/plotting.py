@@ -98,7 +98,9 @@ def _plot_kde_scatter(
     for label in unique_labels:
         mask = labels == label
         if mask.sum() < 2:
-            raise ValueError(f"KDE needs at least 2 points, got {mask.sum()} for {label}")
+            raise ValueError(
+                f"KDE needs at least 2 points, got {mask.sum()} for {label}"
+            )
 
         data = np.vstack([x_coeffs[mask], y_coeffs[mask]])
         kde = gaussian_kde(data)
@@ -192,6 +194,7 @@ def pair_plot(
         bbox_to_anchor=(1.02, 0.5),
         title="Group",
     )
+    return fig
 
 
 def _1d_shape_plot(
@@ -332,6 +335,8 @@ def heatmap(scalings):
     axis.set_xlabel("Feature")
     fig.colorbar(im, ax=axis)
 
+    return fig
+
 
 def feature_importance(estimator: BaseEstimator):
     """
@@ -342,3 +347,75 @@ def feature_importance(estimator: BaseEstimator):
     percent_importances = estimator.explained_variance_ratio_
     axis.bar(np.arange(len(percent_importances)), percent_importances)
     axis.set_yscale("log")
+
+    return fig
+
+
+def plot_metadata_bars(mdata: pd.DataFrame, output_dir: pathlib.Path) -> None:
+    """
+    Plot bar charts showing counts of unique values in metadata.
+    """
+    columns = ["age", "sex", "magnification", "growth", "mutation", "stain"]
+
+    fig, axes = plt.subplots(2, 3, figsize=(14, 8))
+    axes = axes.flatten()
+
+    for i, col in enumerate(columns):
+        counts = mdata[col].value_counts().sort_index()
+        axes[i].bar(counts.index.astype(str), counts.values)
+        axes[i].set_title(col.capitalize())
+        axes[i].set_xlabel(col)
+        axes[i].set_ylabel("Count")
+        axes[i].tick_params(axis="x", rotation=45)
+
+    plt.tight_layout()
+    plt.savefig(output_dir / "metadata_bar_charts.png")
+
+
+def pca_barplot(scalings):
+    """
+    Make a bar plot showing the contribution of the features to each PC
+    """
+    # Want to plot the first two features (size, d_1) and then a whole number
+    # of ellipses, each of which are made up of 4 components
+    n_ellipses = min(3, 1 + (scalings.shape[0] - 2) // 4)
+    n_bars = 2 + n_ellipses * 4
+
+    n_pcs = scalings.shape[0]
+
+    # 4 columns, with as many rows as we need
+    n_col = 4
+    n_row = int(np.ceil(n_pcs / n_col))
+    fig, axes = plt.subplots(n_row, n_col, figsize=(n_col * 4, n_row * 4))
+
+    # First two ticks for size, d_1; then calculate the rest + build their labels
+    xticks = [-3, -1]
+    xticklabels = ["size", r"$d_1$"]
+    vlines = [-2, 0]
+    for i in range(n_ellipses):
+        xticklabels += [rf"$a_{i+2}$", rf"$b_{i+2}$", rf"$c_{i+2}$", rf"$d_{i+2}$"]
+
+        start, end = 1 + 5 * i, 5 + 5 * i
+        xticks += list(range(start, end))
+
+        vlines.append(start - 1)
+
+    for i, (axis, scaling) in enumerate(zip(axes.flat, scalings)):
+        axis.bar(xticks, scaling[:n_bars])
+
+        axis.set_xticks(
+            xticks,
+            xticklabels,
+            ha="right",
+        )
+
+        # Every 4 features is one ellipse - separate them visually
+        for v in vlines:
+            axis.axvline(v, color="k", linestyle="--")
+
+        axis.set_ylim(min(-1.1, axis.get_ylim()[0]), max(1.1, axis.get_ylim()[1]))
+        axis.set_yticks([-1, 0, 1])
+
+        axis.set_title(f"PC{i+1}")
+
+    return fig

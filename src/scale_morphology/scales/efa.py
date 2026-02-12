@@ -10,7 +10,7 @@ import pyefd
 import shapely
 import tifffile
 import numpy as np
-from tqdm.notebook import tqdm
+from tqdm import tqdm
 from skimage import measure
 from skimage.measure import euler_number
 from scipy.ndimage import center_of_mass, binary_fill_holes
@@ -316,12 +316,10 @@ def run_analysis(
     pbar = tqdm if show_progress else lambda x, **kw: x
 
     with ThreadPoolExecutor(max_workers=n_threads) as executor:
-        scales = np.array(
-            list(
-                pbar(
-                    executor.map(_fix_segmentation, scale_paths),
-                    total=len(scale_paths),
-                )
+        scales = list(
+            pbar(
+                executor.map(_fix_segmentation, scale_paths),
+                total=len(scale_paths),
             )
         )
 

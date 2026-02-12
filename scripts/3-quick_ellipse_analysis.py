@@ -24,27 +24,6 @@ from pingouin import pairwise_gameshowell
 from scale_morphology.scales import metadata, ellipse_fit, plotting
 
 
-def _plot_metadata_bars(mdata: pd.DataFrame, output_dir: pathlib.Path) -> None:
-    """
-    Plot bar charts showing counts of unique values in metadata.
-    """
-    columns = ["age", "sex", "magnification", "growth", "mutation", "stain"]
-
-    fig, axes = plt.subplots(2, 3, figsize=(14, 8))
-    axes = axes.flatten()
-
-    for i, col in enumerate(columns):
-        counts = mdata[col].value_counts().sort_index()
-        axes[i].bar(counts.index.astype(str), counts.values)
-        axes[i].set_title(col.capitalize())
-        axes[i].set_xlabel(col)
-        axes[i].set_ylabel("Count")
-        axes[i].tick_params(axis="x", rotation=45)
-
-    plt.tight_layout()
-    plt.savefig(output_dir / "metadata_bar_charts.png")
-
-
 def _get_ellipse(
     img: np.ndarray, magnification: float, plot_path: pathlib.Path | None
 ) -> tuple[float, float]:
@@ -152,7 +131,7 @@ def main(
 
     # Get the metadata
     mdata = metadata.df(scale_paths, default_stain="ALP")
-    _plot_metadata_bars(mdata, output_dir)
+    plotting.plot_metadata_bars(mdata, output_dir)
 
     # Read in the scales
     sizes = []
