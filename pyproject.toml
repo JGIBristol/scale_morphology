@@ -38,6 +38,7 @@ dependencies = [
     "tifffile==2025.12.20",
     "statsmodels>=0.14.6",
     "pingouin>=0.5.5",
+    "imagecodecs>=2026.1.14",
 ]
 
 [tool.pytest.ini_options]
@@ -52,3 +53,10 @@ dashboard = "scale_morphology.scripts.dashboard:cli"
 [build-system]
 requires = ["hatchling"]
 build-backend = "hatchling.build"
+
+[tool.uv]
+required-environments = [
+  "sys_platform == 'win32'",
+  "sys_platform == 'linux'",
+  "sys_platform == 'darwin'"
+]
