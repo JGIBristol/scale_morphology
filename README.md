@@ -147,6 +147,68 @@ code.
 
 <details>
 <summary>Step 4: run the EFA analysis</summary>
+
+This is where the code gets a bit more **"exploratory"**.
+
+The idea here is that, once we have segmented the scales out, we can use a Elliptic Fourier Analysis (EFA)
+to fully describe their shape and then use PCA/LDA to tell us, in an interpretable way, which features
+of the scale vary most with some metadata like sex/age/etc.
+
+The [script](./scripts/4-elliptic_fourier_analysis.py) runs through this pipeline and makes some plots.
+The mechanics of the EFA parameterisation happens in the [library code](./src/scale_morphology/scales/efa.py);
+I have spent some time making sure that the parameterisation is independent of the scale's location/rotation/starting point
+of the contour, and that all the coefficients (bar the first) are independent of the scale's size. This, however, does
+mean that the coefficients are in a slightly non-standard form.
+
+#### EFA Parameterisation
+We can parameterise an ellipse with four coefficients (intuitively this would be the centroid and minor/major axes lengths).
+
+In EFA, we describe our shape as a sum of ellipses (effectively) - here's some formulae:
+
+$$
+\begin{aligned}
+x(t) &= a_0 + \sum_{n=1}^{N} \big[a_n \cos(n t) + b_n \sin(n t)\big],\\
+y(t) &= c_0 + \sum_{n=1}^{N} \big[c_n \cos(n t) + d_n \sin(n t)\big],
+\qquad t \in [0, 2\pi].
+\end{aligned}
+$$
+
+with:
+
+$$
+\begin{aligned}
+a_0 = \frac{1}{2\pi}\int_{0}^{2\pi} x(t)\,dt,\qquad
+c_0 = \frac{1}{2\pi}\int_{0}^{2\pi} y(t)\,dt.
+\end{aligned}
+$$
+
+$$
+\begin{aligned}
+a_n &= \frac{1}{\pi}\int_{0}^{2\pi} x(t)\cos(n t)\,dt, &
+b_n &= \frac{1}{\pi}\int_{0}^{2\pi} x(t)\sin(n t)\,dt,\\
+c_n &= \frac{1}{\pi}\int_{0}^{2\pi} y(t)\cos(n t)\,dt, &
+d_n &= \frac{1}{\pi}\int_{0}^{2\pi} y(t)\sin(n t)\,dt.
+\end{aligned}
+$$
+
+The $(a_i, b_i, c_i, d_i)$ here are the four coefficients here that describe each ellipse.
+
+This means that we can describe our shape with a vector like:
+
+$$(a_1, b_1, c_1, d_1, a_2, b_2, ...)$$
+once we have removed the centroid $(a_0, c_0)$.
+
+However, a few of these parameters are redundant - once we normalise for rotation the $b_1$ and $c_1$ parameters are always 0. We also want to normalise
+the coefficients but keep size information, so we will divide all the coefficients by $a_1$ and then replace the first coeff (which is always 1, since it's $a_0 / a_0$) with the size of the scale.
+
+This gives us our final EFA parameterisation convention:
+$$\left(\mathrm{size}, d_1, a_2, b_2, b_3, b_4, a_3, ...\right)$$
+
+Intuitively, $d_1$ is the aspect ratio of the first ellipse.
+
+Other normalisations include rotating each harmonic to have a relative phase of
+0 and the starting point of the contour to be the same - see the code for details.
+
 </details>
 
 ## Other bits
