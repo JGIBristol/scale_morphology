@@ -49,7 +49,7 @@ def points_around_edge(
     return np.array(x), np.array(y)
 
 
-def _rotate(coeffs: np.ndarray) -> np.ndarray:
+def _rotate(coeffs: np.ndarray, local_rotation: bool) -> np.ndarray:
     """
     Rotate EFD coefficients for one contour such that the principal axis
     is horizontal.
@@ -135,7 +135,10 @@ def reorder_by_distance(
 
 
 def _coeffs(
-    points: tuple[np.ndarray, np.ndarray], com: tuple[float, float], order: int
+    points: tuple[np.ndarray, np.ndarray],
+    com: tuple[float, float],
+    order: int,
+    local_rotation: bool,
 ) -> np.ndarray:
     """
     Get the EFA coefficients from a set of points describing an outline.
@@ -145,6 +148,8 @@ def _coeffs(
 
     :param points: [x, y] points
     :param com: centre of mass of the input image
+    :param order: how many harmonics (ellipses) to use
+    :param local_rotation: whether to rotate all the harmonics to have 0 relative phase
     """
     # Reorder the points to start in a consistent location
     # Starting at the closest point to the centroid
@@ -154,7 +159,7 @@ def _coeffs(
     )
 
     coeffs = pyefd.elliptic_fourier_descriptors(points, order=order, normalize=False)
-    return _rotate(coeffs)
+    return _rotate(coeffs, local_rotation)
 
 
 def _normalise(coeffs: np.ndarray, size: float) -> np.ndarray:
@@ -172,7 +177,12 @@ def _normalise(coeffs: np.ndarray, size: float) -> np.ndarray:
 
 
 def coefficients(
-    binary_img: np.ndarray, n_points: int, order: int, *, magnification: float = None
+    binary_img: np.ndarray,
+    n_points: int,
+    order: int,
+    *,
+    magnification: float = None,
+    local_rotation: bool = True,
 ) -> np.ndarray:
     """
     Find the Elliptic Fourier expansion coefficients of an object in the given binary image.
@@ -196,6 +206,11 @@ def coefficients(
                           by. Useful if some images were taken at a different resolution; e.g.
                           if most images were taken with a 4.0x magnification, but some with 3.2x,
                           then pass magnification=(4.0/3.2)
+    :param local_rotation: whether to normalise each harmonic such that there is no relative rotation
+                           between them. Set to True if you care about using the coefficients to classify/
+                           define the shapes - you want to remove the phase difference between the harmonics
+                           in this case. However, this messes up plotting, so set to False if you want to
+                           visualise the EFA reconstruction.
 
     :returns: Flattened EFA coefficients, normalised and with rotational ambiguity removed.
               The first element here is the size of the object (subject to any magnification).
@@ -215,7 +230,9 @@ def coefficients(
 
     x, y = points_around_edge(binary_img, n_points)
 
-    coeffs = _coeffs([x, y], center_of_mass(binary_img), order)
+    coeffs = _coeffs(
+        [x, y], center_of_mass(binary_img), order, local_rotation=local_rotation
+    )
 
     return _normalise(coeffs, (magnification**2) * (np.sum(binary_img) / 255))
 
