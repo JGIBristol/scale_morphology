@@ -341,6 +341,10 @@ def run_analysis(
         )
 
     # Rescale lengths in the images by the inverse of the magnification
+    # I've forgotten why there's a 4 here over the magnification.
+    # Probably because the default magnification was 4? Not sure that
+    # it makes a difference here, it (should?) only affect the size parameter
+    # which we should probably rescale to a senaible range anyway...
     coeffs = [
         coefficients(scale, n_points, order, magnification=4 / magnification)
         for scale, magnification in zip(pbar(scales), magnifications)
