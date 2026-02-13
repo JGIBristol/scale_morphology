@@ -336,8 +336,12 @@ def run_analysis(
     return np.stack(coeffs)
 
 
-def _unscaled_efa_coeffs(
-    binary_img: np.ndarray, n_points: int, order: int, *, magnification: float = None
+def unscaled_efa_coeffs(
+    img_path: pathlib.Path,
+    *,
+    n_points: int,
+    order: int,
+    magnification: float,
 ) -> np.ndarray:
     """
     Get some un-normalised EFA coefficients.
@@ -356,16 +360,13 @@ def _unscaled_efa_coeffs(
     information like arbitrary phase effects that come from how the
     contour was parameterised.
 
-    The returned EFA coefficients are still rotated so that the principal axis is horizontal.
-
     This image must be a uint8 numpy array containing a single object with no holes, where
     background pixels are marked with a 0 and foreground with 255.
 
     The contour begins at the point closest to the centroid of the object, which makes
     the coefficients consistent for shapes which differ by a rigid rotation.
 
-    :param binary_img: 2D uint8 numpy array containing a single object and no holes;
-                       background is 0; the object is 255
+    :param img_path: path to a 2D image where background is 0; the object is 255
     :param n_points: number of points to linearly interpolate around the edge of the object
                      for our EFA calculation
     :param order: order of harmonics to use for EFA. Each harmonic has 4 degrees of freedom
@@ -377,3 +378,16 @@ def _unscaled_efa_coeffs(
 
     :returns: the EFA coefficients, as an Nx4 array.
     """
+    # horrible messy "2 week before i get a new job" tier code
+    img = _fix_segmentation(img_path)
+
+    x, y = points_around_edge(img, n_points)
+    points = [x, y]
+    com = center_of_mass(img)
+    points = reorder_by_distance(
+        np.array(points).T,
+        com[::-1],
+    )
+    coeffs = pyefd.elliptic_fourier_descriptors(points, order=order, normalize=False)
+
+    return coeffs
