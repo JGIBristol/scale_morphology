@@ -24,6 +24,8 @@ import matplotlib.pyplot as plt
 from matplotlib.patches import Patch, Ellipse
 from matplotlib.colors import TABLEAU_COLORS, CSS4_COLORS
 from sklearn.feature_selection import f_classif
+from sklearn.preprocessing import StandardScaler
+from sklearn.discriminant_analysis import LinearDiscriminantAnalysis
 from statsmodels.multivariate.manova import MANOVA
 from pingouin import pairwise_gameshowell
 
@@ -271,6 +273,59 @@ def _debug_plots(
     plt.close(fig)
 
 
+def _get_colours(grouping_df: pd.DataFrame):
+    """
+    Get the colours for plotting from the df used to group our classes
+    """
+    # Ideally, use the tab10 colourmap
+    # If we have more than 10 categories, instead use equally-spaced
+    # CSS colours
+    num_unique = grouping_df.drop_duplicates().shape[0]
+    colours = TABLEAU_COLORS if num_unique <= 10 else CSS4_COLORS
+    colours = list(colours.keys())
+    if num_unique > 10:
+        idxs = np.linspace(0, len(colours) - 1, num_unique, dtype=int)
+        colours = [colours[i] for i in idxs]
+
+    return colours
+
+
+def _lda(
+    metrics: pd.DataFrame, grouping_df: pd.DataFrame, output_dir: pathlib.Path
+) -> None:
+    """
+    Run LDA and make some plots, just in case they're interesting
+    """
+    # Get labels from the groups df
+    labels = grouping_df.astype(str).agg(" | ".join, axis=1)
+
+    # Scale features + run LDA
+    X = StandardScaler().fit_transform(metrics.to_numpy())
+    y = labels.to_numpy()
+
+    lda = LinearDiscriminantAnalysis()
+    lda_coeffs = lda.fit_transform(X, y)
+
+    lda_dir = output_dir / "lda"
+    lda_dir.mkdir()
+
+    # LDA projection pairplot
+    fig = plotting.pair_plot(
+        metrics.to_numpy(),
+        grouping_df,
+        _get_colours(grouping_df)[: grouping_df.drop_duplicates().shape[0]],
+        axis_label="LDA Axis",
+        normalise=True,
+    )
+    fig.suptitle("LDA Projections")
+    fig.savefig(lda_dir / "lda_scatter.png")
+    plt.close(fig)
+
+    # Coeffs bar chart
+    # Explained variance ratio
+    # LDA score
+
+
 def main(
     *,
     segmentation_dir: pathlib.Path,
@@ -336,16 +391,9 @@ def main(
         debug_plot_dir.mkdir(exist_ok=False, parents=True)
 
     # Make pairplots of them
-    # Ideally, use the tab10 colourmap
-    # If we have more than 10 categories, instead use equally-spaced
-    # CSS colours
-    num_unique = mdata[classes].drop_duplicates().shape[0]
-    colours = TABLEAU_COLORS if num_unique <= 10 else CSS4_COLORS
-    colours = list(colours.keys())
-    if num_unique > 10:
-        idxs = np.linspace(0, len(colours) - 1, num_unique, dtype=int)
-        colours = [colours[i] for i in idxs]
+    colours = _get_colours(mdata[classes])
 
+    num_unique = mdata[classes].drop_duplicates().shape[0]
     fig = plotting.pair_plot(
         metrics.to_numpy(),
         mdata[classes],
@@ -353,7 +401,7 @@ def main(
         axis_label="Metric",
         normalise=True,
     )
-    fig.set_title(query)
+    fig.suptitle(query)
 
     # Rename the axis labels
     axes = np.array(fig.get_axes()).reshape(3, 3)
@@ -368,6 +416,9 @@ def main(
     labels = mdata[classes].astype(str).agg(" | ".join, axis=1)
     if find_separability:
         _statstests(mdata, labels, output_dir)
+
+    # Run LDA
+    _lda(metrics, mdata[classes], output_dir)
 
     # Optional - make any last debug plots
     if debug_plot_dir:
