@@ -37,6 +37,33 @@ def plot_efa(
     axis.plot(x, y, **plot_kw)
 
 
+def plot_unscaled_efa(
+    centroid: tuple[float, float], coeffs: np.ndarray, *, axis: plt.Axes, **plot_kw
+) -> None:
+    """
+    plot EFA coeffs that we got with efa.unscaled_efa_coeffs
+    """
+    # Parameterise
+    n_pts = 300
+    t = np.linspace(0, 1.0, n_pts)
+    harmonics = np.arange(1, coeffs.shape[0] + 1)
+
+    # Calculate all trig terms at once (num_harmonics x num_points)
+    angles = 2 * np.pi * harmonics[:, None] * t[None, :]
+    cos_terms = np.cos(angles)
+    sin_terms = np.sin(angles)
+
+    # Calculate x and y coordinates using matrix multiplication
+    xt = centroid[0] + np.sum(
+        coeffs[:, 2:3] * cos_terms + coeffs[:, 3:4] * sin_terms, axis=0
+    )
+    yt = centroid[1] - np.sum(
+        coeffs[:, 0:1] * cos_terms + coeffs[:, 1:2] * sin_terms, axis=0
+    )
+
+    axis.plot(xt, yt, **plot_kw)
+
+
 def clear2colour_cmap(colour) -> colors.Colormap:
     """
     Colormap that varies from clear to a colour - useful for plotting the KDEs
@@ -120,7 +147,7 @@ def pair_plot(
     *,
     axis_label: str,
     normalise: bool = False,
-):
+) -> plt.Figure:
     """
     Plot a pair plot: a scatter plot of each PC (or LDA axis) against all the others,
     with 1d histograms on the diagonal.
@@ -186,7 +213,7 @@ def pair_plot(
                 facecolor=colour_lookup[idx],
                 edgecolor="k",
                 linewidth=0.5,
-                label=str(unique),
+                label=" | ".join([str(u) for u in unique]),
             )
             for idx, unique in zip(np.unique(labels), uniques, strict=True)
         ],

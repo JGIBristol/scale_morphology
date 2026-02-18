@@ -10,6 +10,7 @@ import pyefd
 import shapely
 import tifffile
 import numpy as np
+import pandas as pd
 from tqdm import tqdm
 from skimage import measure
 from skimage.measure import euler_number
@@ -324,9 +325,134 @@ def run_analysis(
         )
 
     # Rescale lengths in the images by the inverse of the magnification
+    # I've forgotten why there's a 4 here over the magnification.
+    # Probably because the default magnification was 4? Not sure that
+    # it makes a difference here, it (should?) only affect the size parameter
+    # which we should probably rescale to a senaible range anyway...
     coeffs = [
         coefficients(scale, n_points, order, magnification=4 / magnification)
         for scale, magnification in zip(pbar(scales), magnifications)
     ]
 
     return np.stack(coeffs)
+
+
+def unscaled_efa_coeffs(
+    img_path: pathlib.Path, *, n_points: int, order: int
+) -> np.ndarray:
+    """
+    Get some un-normalised EFA coefficients.
+
+    Normally, for feature extraction, we want to make sure that
+    two images which are identical up to a rotation/scaling/etc.
+    have the same EFA coefficients. We also want to remove things
+    like the arbitrary starting point of the parameterisation and
+    the relative rotation of each of the harmonics.
+
+    This, however, means that we can't plot the EFA coefficients
+    in a sensible way. This function returns the EFA coefficients
+    without any normalisation/scaling that would otherwise break
+    the plotting - it does mean that these coefficients are less
+    good for things like feature selection, since they will contain
+    information like arbitrary phase effects that come from how the
+    contour was parameterised.
+
+    Note that this gives us EFA coefficients in "pixel space" - to convert
+    this to real, meaningful space we might have to do some manipulations with
+    the magnification so that the size comes out correctly.
+
+    This image must be a uint8 numpy array containing a single object with no holes, where
+    background pixels are marked with a 0 and foreground with 255.
+
+    The contour begins at the point closest to the centroid of the object, which makes
+    the coefficients consistent for shapes which differ by a rigid rotation.
+
+    :param img_path: path to a 2D image where background is 0; the object is 255
+    :param n_points: number of points to linearly interpolate around the edge of the object
+                     for our EFA calculation
+    :param order: order of harmonics to use for EFA. Each harmonic has 4 degrees of freedom
+                  (except the first, which has two; roughly)
+
+    :returns: the EFA coefficients, as an Nx4 array.
+    """
+    # horrible messy "2 week before i get a new job" tier code
+    img = _fix_segmentation(img_path)
+
+    x, y = points_around_edge(img, n_points)
+    points = [x, y]
+    com = center_of_mass(img)
+    points = reorder_by_distance(
+        np.array(points).T,
+        com[::-1],
+    )
+    coeffs = pyefd.elliptic_fourier_descriptors(points, order=order, normalize=False)
+
+    return coeffs
+
+
+def _approx_size(coeffs: np.ndarray, magnification: float) -> float:
+    """
+    Get the approximate size of an object described by its EFA coefficients.
+
+    This returns just the area contained within the first ellipse - this is
+    the area of the scale ignoring any higher order/smaller features, like bumps
+    and protrusions. This might give us a better measure of overall bulk without
+    looking at smaller features.
+    """
+    a1, b1, c1, d1 = coeffs[0, 0], coeffs[0, 1], coeffs[0, 2], coeffs[0, 3]
+    size = np.pi * np.sqrt((a1**2 + b1**2) * (c1**2 + d1**2))
+
+    return np.abs(size) / magnification**2
+
+
+def _aspect_ratio(coeffs: np.ndarray) -> float:
+    """
+    Get the aspect ratio of the first harmonic.
+    """
+    a1, b1, c1, d1 = coeffs[0, 0], coeffs[0, 1], coeffs[0, 2], coeffs[0, 3]
+
+    _, s, _ = np.linalg.svd([[a1, b1], [c1, d1]])
+    major, minor = s[0], s[1]
+
+    return major / minor
+
+
+def _bumpiness(coeffs: np.ndarray, bump_threshold: int) -> float:
+    """
+    Get the "bumpiness metric" for a shape described by EFA coefficients:
+    this is the fraction of Fourier power held in the coefficients
+    above the bump_threshhold.
+    """
+    total_power = (coeffs**2).sum()  # Total Fourier Power
+    high_power = (coeffs[bump_threshold:] ** 2).sum()
+
+    return high_power / total_power
+
+
+def shape_features(
+    coeffs: np.ndarray, magnifications: np.ndarray, bump_threshold: int
+) -> pd.DataFrame:
+    """
+    Get our shape features from the EFA coefficients.
+
+    These are:
+     - size: the size of the first harmonic ellipse
+     - aspect ratio: the aspect ratio of the first harmonic ellipse
+     - bumpiness: the amount of Fourier power held in the high-frequency components
+
+    :param coeffs: Nx4 array of EFA coefficients, as returned by `unscaled_efa_coeffs`.
+    :param magnification: magnification at which the image was taken
+    :param bump_threshold: harmonic above which we consider their contribution "bumps".
+                           e.g. bump_threshold = 5 will consider the first 5 harmonics to be
+                           part of the overall shape, and anything higher a "bump". To set
+                           an upper threshold, slice `coeffs`.
+
+    :returns: a dataframe with "size", "aspect ratio" and "bumpiness" columns and N rows
+    """
+    sizes = [_approx_size(c, m) for c, m in zip(coeffs, magnifications)]
+    aspect_ratios = [_aspect_ratio(c) for c in coeffs]
+    bumpinesses = [np.log(_bumpiness(c, bump_threshold)) for c in coeffs]
+
+    return pd.DataFrame(
+        {"size": sizes, "aspect_ratio": aspect_ratios, "bumpiness": bumpinesses}
+    )
