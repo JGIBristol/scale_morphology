@@ -8,6 +8,7 @@ and then make some basic plots and output some simple statistics.
 """
 
 import pathlib
+import warnings
 import argparse
 from contextlib import redirect_stdout
 
@@ -254,7 +255,7 @@ def _debug_plots(
         axis.fill_between(x, lower, upper, alpha=0.3)
     axis.set_yscale("log")
     axis.axvline(harmonic_cutoff, color="k")
-    axis.text(harmonic_cutoff + 0.5, axis.get_ylim()[0]*5, "Bump harmonics->")
+    axis.text(harmonic_cutoff + 0.5, axis.get_ylim()[0] * 5, "Bump harmonics->")
 
     fig.suptitle("EFA Fourier Power Spectrum")
     axis.set_title("Median/IQR of classes")
@@ -271,6 +272,7 @@ def main(
     classes: list[str],
     debug_plot_dir: pathlib.Path | None,
     output_dir: pathlib.Path,
+    query: str | None,
     n_edge_points: int,
     n_total_harmonics: int,
     harmonic_cutoff: int,
@@ -295,11 +297,33 @@ def main(
 
     # Get the metadata
     mdata = metadata.df(scale_paths, default_stain="ALP")
+    if query is not None:
+        mdata = mdata.query(query).reset_index()
+    del scale_paths  # Don't want to accidentally use this later now that we have sliced the df
+
+    # Make sure that we've not messed anything up
+    find_separability = mdata[classes].drop_duplicates().shape[0] > 1
+    if not find_separability:
+        warnings.warn(
+            f"Only {mdata[classes].drop_duplicates().shape[0]} classes found in metadata based on labels for {classes}.\n"
+            "We cannot find stats on separability here."
+        )
+
     if debug_plot_dir:
         plotting.plot_metadata_bars(mdata, debug_plot_dir)
 
     # Get the EFA coeffs
-    coeffs = _efa_coeffs(scale_paths, efa_cache_path, n_edge_points, n_total_harmonics)
+    coeffs = _efa_coeffs(
+        mdata["path"], efa_cache_path, n_edge_points, n_total_harmonics
+    )
+
+    # Let's just be sure and check that we have the right number of coeffs
+    if len(coeffs) != len(mdata):
+        raise ValueError(
+            f"Got {len(coeffs)=} but {len(mdata)=}; "
+            f"was the EFA coeff cache {efa_cache_path} used for a different "
+            f"input dataset or with a different query ({query=} here)?"
+        )
 
     # Get the metrics from the coeffs
     metrics = efa.shape_features(
@@ -337,7 +361,8 @@ def main(
 
     # Print stats to a file
     labels = mdata[classes].astype(str).agg(" | ".join, axis=1)
-    _statstests(mdata, labels, output_dir)
+    if find_separability:
+        _statstests(mdata, labels, output_dir)
 
     # Optional - make any last debug plots
     if debug_plot_dir:
@@ -383,6 +408,13 @@ if __name__ == "__main__":
         type=pathlib.Path,
         help=f"Where outputs get stored. Defaults to {default_out_dir}.",
         default=default_out_dir,
+    )
+    parser.add_argument(
+        "--query",
+        type=str,
+        help="Optional pandas query string to filter the dataframe "
+        "e.g. 'sex == \"F\"' or '(sex != \"?\") & (age == 19)'",
+        default=None,
     )
 
     parser.add_argument(
