@@ -303,10 +303,12 @@ def main(
     # Make sure that we've not messed anything up
     find_separability = mdata[classes].drop_duplicates().shape[0] > 1
     if not find_separability:
+        unique = mdata[classes].drop_duplicates()
         warnings.warn(
-            f"Only {mdata[classes].drop_duplicates().shape[0]} classes found in metadata based on labels for {classes}.\n"
+            f"Only {unique.shape[0]} classes found in metadata ({unique}) based on labels for {classes}.\n"
             "We cannot find stats on separability here."
         )
+        del unique
 
     # Get the EFA coeffs
     coeffs = _efa_coeffs(
@@ -351,6 +353,7 @@ def main(
         axis_label="Metric",
         normalise=True,
     )
+    fig.set_title(query)
 
     # Rename the axis labels
     axes = np.array(fig.get_axes()).reshape(3, 3)
