@@ -15,6 +15,9 @@ from contextlib import redirect_stdout
 import cv2
 import tifffile
 import numpy as np
+from numpy import (
+    inf,
+)  # Need this to parse queries including np.inf; query CLI won't accept np.inf with the dot
 import pandas as pd
 from tqdm import tqdm
 import matplotlib.pyplot as plt
@@ -174,6 +177,8 @@ def _debug_plots(
     :param metrics: the size/aspect ratio/bumpiness metrics
     :param debug_plot_dir: where to save this nonsense
     """
+    plotting.plot_metadata_bars(mdata, debug_plot_dir)
+
     ellipse_dir = debug_plot_dir / "efa_plots"
     ellipse_dir.mkdir()
 
@@ -287,12 +292,6 @@ def main(
     the area/ellipse area/ellipse aspect ratio and also showing the
     Fourier power spectrum.
     """
-    output_dir.mkdir(exist_ok=False, parents=True)
-
-    if debug_plot_dir:
-        debug_plot_dir = output_dir / debug_plot_dir
-        debug_plot_dir.mkdir(exist_ok=False, parents=True)
-
     scale_paths = list(str(p) for p in segmentation_dir.glob("*.tif"))
 
     # Get the metadata
@@ -308,9 +307,6 @@ def main(
             f"Only {mdata[classes].drop_duplicates().shape[0]} classes found in metadata based on labels for {classes}.\n"
             "We cannot find stats on separability here."
         )
-
-    if debug_plot_dir:
-        plotting.plot_metadata_bars(mdata, debug_plot_dir)
 
     # Get the EFA coeffs
     coeffs = _efa_coeffs(
@@ -330,6 +326,12 @@ def main(
         coeffs, mdata["magnification"], bump_threshold=harmonic_cutoff
     )
     mdata = mdata.join(metrics)
+
+    # Make output dirs
+    output_dir.mkdir(exist_ok=False, parents=True)
+    if debug_plot_dir:
+        debug_plot_dir = output_dir / debug_plot_dir
+        debug_plot_dir.mkdir(exist_ok=False, parents=True)
 
     # Make pairplots of them
     # Ideally, use the tab10 colourmap
