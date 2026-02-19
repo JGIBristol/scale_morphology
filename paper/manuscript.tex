@@ -314,53 +314,66 @@ with:
 Our EFDs are N sets of $a_n, b_n, c_n, d_n$.
 $a_0$ and $c_0$ encode the position of the edge (it is their centroid).
 
+\section{PCA for feature selection}
+\label{pca_feature_selection}
+Normally people would just chuck things into PCA and hope for the best - especially in
+morphometrics (I remember seeing a guide recommend you just throw your x/y-coords into PCA
+to see if anything interesting comes up) - but PCA does something slightly different than what
+we might want. PCA finds the best linear combinations of variables that describe the variance
+within the dataset - there is no reason to believe that these combinations will correspond to
+descriptive features, or that they will distinguish between our classes.
+PCA features are also, by definition, always linear combinations - we cannot express things like
+our bumpiness ratio or size as linear combinations of EFDs, so PCA would never discover them.
+Finally, PCA axes are not biologically informed - any separation they do find might be spurious
+(you'd have to do stats to find out if they are), and there's no reason a priori to expect the
+directions PCA discovers to mean anything physical.
+Above, we have come up with better features that 1. actually describe the biologically interesting features in the dataset and
+2. might never be picked up by pca (e.g. because they are non-linear, or because they don't describe
+much global variation but do describe a lot of the difference between our classes).
+
 \section{EFA as a complete description of shape}
 \label{efa_shape_description}
 A note on EFD - a complete description of shape.
-\begin{itemize}
-	\item Normally people would just chuck things into PCA and hope for the best
-	\item It will find the best linear* combinations that describe the dataset*
-	\item This is fine
-	\item There also seems to be a belief that PCA magically finds the right thing, and that you
-	      might as well chuck your image pixels into PCA to find interesting features. This isn't true.
-	\item Why not just use PCA - global variation instead of class separability, only linear, not biologically informed
-	\item We can come up with better (possibly non-linear, see the bumpiness metric below) features
-	      that 1. actually describe the biologically interesting features in the dataset and
-	      2. might never be picked up by pca (e.g. because they are non-linear, or because they don't describe
-	      much global variation but do describe a lot of the difference between our classes).
-	\item EFA is not a list of features derived from our shape - it is a *complete description of it* (down to some length scale)
-	\item This means that ANY (reasonable) feature can be calculated from the EFA coefficients - it might be hard to work out how to do this, but it should be possible
-	\item We show feature selection using EFDs here as an illustration - you could of course get e.g. size
-	      by just counting pixels
-\end{itemize}
+EFA is not a list of features derived from our shape - it is a \emph{complete description of it} (down to some length scale).
+This means that ANY (reasonable) feature can be calculated from the EFA coefficients - it might be hard to work out how to do this, but it should be possible;
+for example, our bumpiness and aspect ratios are simple examples of real things that you could derive from the image, but because
+EFA gives us a fully descriptive conjugate space, we can work these things out with EFDs too. Other examples include things like area,
+centre of gravity, moment of inertia...
+
+Here, we show feature selection using only the EFDs.
+You could, of course, just as well get e.g. size by just counting the pixels in the image.
+Some features will be easier to calculate in EFD space and others in pixel space - but I think it is worth emphasising that
+they \emph{contain the same information}. Lots of works consider EFDs to be features of the image, but really they are just another way
+of representing it.
+
+This has some interesting consequences, which is perhaps more intuitive to physicists/engineers than biologists/palaeontologists who
+are probably less used to thinking in conjugate spaces like the frequency domain.
+
+The example in Appendix~\ref{pca_feature_selection} of throwing x/y co-ords into PCA to see what happens isn't absurd when you consider this
+- it is almost a standard practice to do the same thing with EFDs, so why not with pixel locations?
+I think the answer to both is that neither are sensible, and instead finding biologically inspired features and deciding how best to express them,
+either in terms of real-space pixel co-ordinates or a conjugate space like EFDs, is the best way to select features for shape analysis.
 
 \section{Mathematical notes on the bumpiness metric}
 \label{bumpiness_appendix}
+The bumpiness metric is based on the idea that smaller features are described by higher harmonics, and our bumps are small features.
+Why take the log in our formula? Because it makes the scatter plots look right. Not taking the log squishes everything up to small values like 0.0001 vs 0.000001,
+the absolute difference between which isn't that descriptive - but the log-difference is.
+
+There is also a mathematical explanation: we take the log because we expect the Fourier power to decrease as (at least) some power law.
+The logic is as follows:
 \begin{itemize}
-	\item Why take the log? Because it makes it look right. Not taking the log squishes everything up to small values like 0.0001 vs 0.000001,
-	      the absolute difference between which isn't that descriptive - but the log-difference is.
-	\item Mathematical explanation: we take the log because we expect the Fourier power to decrease as (at least) some power law:
-	      \begin{itemize}
-		      \item the scale has finite area/perimiter/is bounded - this tells us that x is square-integrable, i.e. $\int_0^{2\pi}x(t)^2dt$.
-		      \item By Parseval's theorem, this means that $\sum_n^\infty(a_n^2 + b_n^2)$ (since the a, b coeffs came from the x points). Same for the $b, c$ coeffs from $y$.
-		      \item i.e. total harmonic power must converge - $\sum_{n=1}^\infty \left(a_n^2 + b_n^2 + c_n^2 + d_n^2 \right) < \infty$
-		      \item This tells us that the higher harmonics have to $\rightarrow 0$ as $n\rightarrow \infty$.
-		      \item How fast they decay is determined by smoothness - if the shape is continuous (but not differentiable, i.e. it has sharp corners) then
-		            our coefficients will decay as $1/n$.
-		      \item Further constraints (like having smooth, non-sharp corners or being analytic) will mean the coeffs decay even faster.
-		      \item For scales, we can at least say that the Fourier power per harmonic decays at least like $1/n^2$ (but probably faster).
-		      \item The bumpiness (fraction of power in higher harmonics) is:
-		            \begin{equation}
-			            \frac{\sum_n^{nmax} a_n^2}{\sum_1^{nmax} a_n^2}
-		            \end{equation}
-		      \item Taking the log of this, we get
-		            \begin{equation}
-			            log\left(\sum_n^{nmax} a_n^2\right) - log\left(\sum_1^{nmax} a_n^2\right)
-		            \end{equation}
-		      \item Since we expect these to decay as power-laws, we have turned our power-law variation into linear
-		            variation and turned multiplicative variation into additive variation (more intuitive)
-		      \item This is too much detail for the paper it's just interesting from an EFA perspective
-	      \end{itemize}
+	\item the scale has finite area/perimiter/is bounded - this tells us that x is square-integrable, i.e. $\int_0^{2\pi}x(t)^2dt$.
+	\item By Parseval's theorem, this means that $\sum_n^\infty(a_n^2 + b_n^2)$ (since the a, b coeffs came from the x points). Same for the $b, c$ coeffs from $y$.
+	\item i.e. total harmonic power must converge - $\sum_{n=1}^\infty \left(a_n^2 + b_n^2 + c_n^2 + d_n^2 \right) < \infty$
+	\item This tells us that the higher harmonics have to $\rightarrow 0$ as $n\rightarrow \infty$.
+	\item How fast they decay is determined by smoothness - if the shape is continuous (but not differentiable, i.e. it has sharp corners) then
+	      our coefficients will decay as $1/n$.
+	\item Further constraints (like having smooth, non-sharp corners or being analytic) will mean the coeffs decay even faster.
+	\item For scales, we can at least say that the Fourier power per harmonic decays at least like $1/n^2$ (but probably faster).
+	\item By taking the log, we have turned our power-law variation into linear
+	      variation and turned multiplicative variation into additive variation (more intuitive)
+	\item This is too much detail for the paper it's just interesting from an EFA perspective (to me)...
 \end{itemize}
 
 \end{document}
