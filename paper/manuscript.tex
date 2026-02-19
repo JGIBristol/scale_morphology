@@ -231,13 +231,6 @@ This, again, is a metric that can be calculated from the EFDs.
 You might have noticed that I snuck a ``log'' in there - the intuitive reason for this is because it makes the plot look better.
 The mathematical reason is in Appendix~\ref{bumpiness_appendix}.
 
-\section{Statistical Tests + Interpreting Axes}
-\begin{itemize}
-	\item We did a standard scaling
-	\item LDA explanation + sklearn citation
-	\item LDA accuracy metrics
-	\item Stats tests explanations - not too much detail
-\end{itemize}
 
 As a sanity check, Figure.~\ref{bumpiness} shows some scales ordered by the bumpiness metric.
 \begin{figure}
@@ -250,6 +243,42 @@ As a sanity check, Figure.~\ref{bumpiness} shows some scales ordered by the bump
 	}
 	\label{bumpiness}
 \end{figure}
+
+\section{Statistical Tests + Interpreting Axes}
+The scatter plots of these features are probably the most informative output.
+
+However, I have also run some additional analyses to see if we can get any extra insights.
+
+\subsection{Statistical Tests}
+The first of these are some simple statistical tests - these were just to get some numbers, in case
+we wanted to put them somewhere (e.g. a paper abstract). There are a few different things going on here;
+the analysis script outputs the results of the stats tests, p-values, etc. I will leave it as an exercise
+for the reader to find out precisely what is going on, and if any of them are of interest, but the three types of test
+here are:
+\begin{enumerate}
+	\item F-test: can we separate out at least one of our classes from the others?
+	\item Games-Howell pairwise test: can we separate our classes out from each other individually?
+	\item
+\end{enumerate}
+Number 1 is a relatively relaxed test - if all but one classes are indistiguishable, we will still get a low p-value for this test.
+Number 2 is pairwise - for lots of classes, there will be lots of results. You have to be a bit careful here - if we have 20 pairs of
+classes, we would expect one p-value $<0.05$ just by random chance.
+Number 3 is perhaps the most meaningful test - it tells us about the joint feature space (the other tests look at the features independently).
+I think the "Roy's greatest root" is the most important thing here, but I'm not really sure what this stats stuff means.
+Perhaps best to just leave it. It's there just in case.
+
+\subsection{Linear Discriminant Analysis}
+A better way to separate our classes using our features is with Linear Discriminant Analysis (LDA).
+This finds linear combinations of our features that best separate the classes. We first scale our features
+to standard form (0 mean, 1 standard deviation), and then run LDA on them.
+
+We output a plot of the classes in LDA feature space, as well as some bar plots telling us the relative importance
+of the LDA feature and the original features' (size, aspect ratio, bumpiness) contribution to the LDA axes.
+Perhaps the most interesting thing here is the accuracy - using k-fold validation (with k=5), I ran the LDA on
+folds of the data to get an idea of how seperable our classes are. This is in the lda\_crossval\_score.txt file that our script outputs.
+This tells us both the subset accuracy (how often we match up our points to the right classes) and balanced accuracy (similar, but takes
+different sample sizes in our different classes into account).
+
 
 \appendix
 \section{Calculating EFDs}
