@@ -7,9 +7,9 @@
 \usepackage{hyperref}
 \usepackage{natbib}
 
-\author{Richard Lane, Rabia Sevil, Chrissy Hammond}
+\author{Richard Lane, Carran Johal, Rabia Sevil, Chrissy Hammond}
 \title{
-    paper title
+	Scale Shape Methods
 }
 
 \begin{document}
@@ -18,43 +18,107 @@
 % To make the building work while I don't have any references
 \cite{example2023}
 
-\section{Methods}
-\subsection{Materials}
+\section{Materials}
 \begin{itemize}
 	\item Stuff that happened in the lab
 	\item Which fish we used
 	\item How many we ended up with
+	\item Imaging, staining etc.
 	\item Flowchart of fishes
 \end{itemize}
 
-\subsection{Elliptic Fourier Analysis}
-\subsubsection{Segmentation}
+\section{Segmentation}
 \begin{itemize}
-	\item Pipeline, maybe with a flowchart
-	\item Classical steps
+	\item Show an image of a scale and segmentation mask
 	\item SAM steps
+		\begin{itemize}
+			\item Prior
+			\item ALP prior - rough segmentation, pick random points, find bbox
+			\item Confocal prior - just pick some points in the middle of the image. Not used here.
+			\item SAM model citation
+		\end{itemize}
 	\item Manual cleaning
 \end{itemize}
 
-\subsubsection{Elliptic Fourier Decomposition}
+\section{Elliptic Fourier Descriptors}
 \begin{itemize}
-	\item Maths
+	\item Maths - EFD used to describe the boundary of the shape
 	\item Citation for code
-	\item Maybe a diagram showing the pipeline
-	\item How did I choose how many points to use - power spectrum? Haussdorf distance? area using shoelace formula?
-    \item How did I choose how many harmonics to use - Hausdorff distance?
-    \item Mention that EFA is useful because it regularises! There might be rough edges, EFA smoothes these sensibly...
+	\item My workflow:
+	\begin{itemize}
+		\item Remove any spurious bits, fill holes - even the clean segmentations sometimes have issues
+		\item Find equally spaced points around the edge of the segmentation
+		\item Re-order points such that we have a consistent ordering.
+			  Otherwise two rotated but otherwise identical shapes will have different EFD descriptors.
+			  In my case, I reorder such that the first point is closest to the CoM of the object.
+		\item Fit to these with pyefd - get coeffs
+		\item Unscaled coeffs, since I care about the size and we want to extract raw features from the coeffs
+		\item You can rotate these coeffs to remove things like rotation information (but the features I calculate later are rotation independent)
+			  and it means the coefficients can't be easily used to plot the shape of the scale (which we might want to do,
+			  to check that the EFD descriptors actually look like our scale)
+	\end{itemize}
+	\item What we get out
+	\item A note on EFD - a complete description of shape.
+	\begin{itemize}
+		\item Normally people would just chuck things into PCA and hope for the best
+		\item It will find the best linear* combinations that describe the dataset*
+		\item This is fine
+		\item There also seems to be a belief that PCA magically finds the right thing, and that you
+		      might as well chuck your image pixels into PCA to find interesting features. This isn't true.
+		\item We can come up with better (possibly non-linear, see the bumpiness metric below) features
+			  that 1. actually describe the biologically interesting features in the dataset and
+			  2. might never be picked up by pca (e.g. because they are non-linear, or because they don't describe
+			  much global variation but do describe a lot of the difference between our classes).
+		\item EFA is not a list of features derived from our shape - it is a *complete description of it* (down to some length scale)
+		\item This means that ANY (reasonable) feature can be calculated from the EFA coefficients - it might be hard to work out how to do this, but it should be possible
+		\item We show feature selection using EFDs here as an illustration - you could of course get e.g. size
+			  by just counting pixels
+	\end{itemize}
 \end{itemize}
 
-\subsubsection{Dimensionality Reduction + Interpreting Axes}
+\section{Feature Extraction}
 \begin{itemize}
-	\item PCA explanation
-	\item LDA explanation
-	\item sklearn citation
+	\item Features chosen:
+	\begin{itemize}
+		\item Size
+		\item Aspect Ratio
+		\item Bumpiness
+		\begin{itemize}
+			\item Why take the log? Because it makes it look right. Not taking the log squishes everything up to small values like 0.0001 vs 0.000001,
+				  the absolute difference between which isn't that descriptive - but the log-difference is.
+			\item Mathematical explanation: we take the log because we expect the Fourier power to decrease as (at least) some power law:
+			\begin{itemize}
+				\item the scale has finite area/perimiter/is bounded - this tells us that x is square-integrable, i.e. $\int_0^{2\pi}x(t)^2dt$.
+				\item By Parseval's theorem, this means that $\sum_n^\infty(a_n^2 + b_n^2)$ (since the a, b coeffs came from the x points). Same for the $b, c$ coeffs from $y$.
+				\item i.e. total harmonic power must converge - $\sum_{n=1}^\infty \left(a_n^2 + b_n^2 + c_n^2 + d_n^2 \right) < \infty$
+				\item This tells us that the higher harmonics have to $\rightarrow 0$ as $n\rightarrow \infty$.
+				\item How fast they decay is determined by smoothness - if the shape is continuous (but not differentiable, i.e. it has sharp corners) then
+					  our coefficients will decay as $1/n$.
+				\item Further constraints (like having smooth, non-sharp corners or being analytic) will mean the coeffs decay even faster.
+				\item For scales, we can at least say that the Fourier power per harmonic decays at least like $1/n^2$ (but probably faster).
+				\item The bumpiness (fraction of power in higher harmonics) is:
+				\begin{equation}
+					\frac{\sum_n^{nmax} a_n^2}{\sum_1^{nmax} a_n^2}
+				\end{equation}
+				\item Taking the log of this, we get
+				\begin{equation}
+					log\left(\sum_n^{nmax} a_n^2\right) - log\left(\sum_1^{nmax} a_n^2\right)
+				\end{equation}
+				\item Since we expect these to decay as power-laws, we have turned our power-law variation into linear
+					  variation and turned multiplicative variation into additive variation (more intuitive)
+				\item This is too much detail for the paper it's just interesting from an EFA perspective
+			\end{itemize}
+		\end{itemize}
+	\end{itemize}
     \item[]
-    \item Looking at the extreme ones
-	\item Eigenshape analysis
-	\item Direct axis interpretability - by plotting "pure" axes
+	\item Why not just use PCA - global variation instead of class separability, only linear, not biologically informed
+\end{itemize}
+
+\section{Statistical Tests + Interpreting Axes}
+\begin{itemize}
+	\item LDA explanation + sklearn citation
+	\item LDA accuracy metrics
+	\item Stats tests explanations - not too much detail
 \end{itemize}
 
 \section{Results}
