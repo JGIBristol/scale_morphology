@@ -108,7 +108,7 @@ Sometimes the SAM model will pick up things that aren't the scale, or only segme
 parts of the scale. This happened around 10\% of the time for our data. To deal with this,
 we wrote a script using napari[10.5281/zenodo.3555620]/python to create a GUI for cleaning the scale.
 This can be seen in Fig.~\ref{napari}.
-\begin{figure}[h!]
+\begin{figure}[!htb]
 	\centering
 	\includegraphics[width=0.8\textwidth]{imgs/napari_cleaning_gui.png}
 	\caption{The segmentation cleaning GUI.}
@@ -118,40 +118,37 @@ This can be seen in Fig.~\ref{napari}.
 Cleaned segmentations are in Carran/Postgrad/flattened\_segmentations\_cleaned/.
 
 \section{Elliptic Fourier Descriptors}
+Now that we have segmented our scales, we can analyse their shape.
+Since our scales are nice, simple shapes (they don't contain holes or any pathologies
+like fractal edges or anything weird) we can fully describe their shape with a single
+closed curve representing their boundaries. We will do this using Elliptic Fourier Analysis (EFA),
+to express the shapes in terms of Elliptic Fourier Descriptors (EFDs).
+
+The procedure for EFA is as follows:
 \begin{itemize}
-	\item Maths - EFD used to describe the boundary of the shape
-	\item Citation for code
-	\item My workflow:
-	      \begin{itemize}
-		      \item Remove any spurious bits, fill holes - even the clean segmentations sometimes have issues
-		      \item Find equally spaced points around the edge of the segmentation
-		      \item Re-order points such that we have a consistent ordering.
-		            Otherwise two rotated but otherwise identical shapes will have different EFD descriptors.
-		            In my case, I reorder such that the first point is closest to the CoM of the object.
-		      \item Fit to these with pyefd - get coeffs
-		      \item Unscaled coeffs, since I care about the size and we want to extract raw features from the coeffs
-		      \item You can rotate these coeffs to remove things like rotation information (but the features I calculate later are rotation independent)
-		            and it means the coefficients can't be easily used to plot the shape of the scale (which we might want to do,
-		            to check that the EFD descriptors actually look like our scale)
-	      \end{itemize}
-	\item What we get out
-	\item A note on EFD - a complete description of shape.
-	      \begin{itemize}
-		      \item Normally people would just chuck things into PCA and hope for the best
-		      \item It will find the best linear* combinations that describe the dataset*
-		      \item This is fine
-		      \item There also seems to be a belief that PCA magically finds the right thing, and that you
-		            might as well chuck your image pixels into PCA to find interesting features. This isn't true.
-		      \item We can come up with better (possibly non-linear, see the bumpiness metric below) features
-		            that 1. actually describe the biologically interesting features in the dataset and
-		            2. might never be picked up by pca (e.g. because they are non-linear, or because they don't describe
-		            much global variation but do describe a lot of the difference between our classes).
-		      \item EFA is not a list of features derived from our shape - it is a *complete description of it* (down to some length scale)
-		      \item This means that ANY (reasonable) feature can be calculated from the EFA coefficients - it might be hard to work out how to do this, but it should be possible
-		      \item We show feature selection using EFDs here as an illustration - you could of course get e.g. size
-		            by just counting pixels
-	      \end{itemize}
+	\item Remove any spurious bits, fill holes - even the clean segmentations sometimes have issues like stray pixels
+	\item Find equally spaced points around the edge of the segmentation using shapely [10.5281/zenodo.5597138].
+	\item Re-order points such that we have a consistent ordering. (Otherwise two rotated but otherwise identical shapes will have different EFD descriptors.)
+	      In my case, I reorder such that the first point is closest to the centre of mass of the object.
+	\item Fit to these with pyefd [https://github.com/hbldh/pyefd] to find EFDs
 \end{itemize}
+The EFDs we extract are $4N$ floating-point numbers for N harmonics.
+An illustration is in Figure.~\ref{efa_illustration}
+
+\begin{figure}[!htb]
+	\centering
+	\includegraphics[width=0.9\textwidth]{imgs/efa_illustration.png}
+	\caption{An illustration of the EFA procedure.
+		Left: the segmentation with an elliptical fit to its edge in green. This is the first harmonic of the EFA expansion.
+		Middle: the full EFA expansion up to 25 harmonics.
+		Right: the EFA expansion up to 5 harmonics. Note that smaller features are not reproduced.
+		Original image 12M\_(4.0x)\_LC3\_GFP\_Osx\_mcherry\_D10Reg\_Fish1\_female\_D10reg\_scale002\_\_2021
+		\_LC3\_GFP\_OSX\_Mcherry\_1year\_ALP
+	}
+	\label{efa_illustration}
+\end{figure}
+
+The maths of EFA is briefly covered in Appendix~\ref{efa_maths}.
 
 \section{Feature Extraction}
 \begin{itemize}
@@ -200,7 +197,56 @@ Cleaned segmentations are in Carran/Postgrad/flattened\_segmentations\_cleaned/.
 
 
 \appendix
-\section{EFD as a complete description of shape}
+\section{Calculating EFDs}
+\label{efa_maths}
+Given a set of points on our edge ${x, y}$ we parameterise our shape with EFDs as follows:
+
+\begin{align}
+	\begin{aligned}
+		x(t) & = a_0 + \sum_{n=1}^{N} \big[a_n \cos(n t) + b_n \sin(n t)\big], \\
+		y(t) & = c_0 + \sum_{n=1}^{N} \big[c_n \cos(n t) + d_n \sin(n t)\big],
+		\qquad t \in [0, 2\pi].
+	\end{aligned}
+\end{align}
+
+with:
+
+\begin{align}
+	\begin{aligned}
+		a_0 = \frac{1}{2\pi}\int_{0}^{2\pi} x(t)\,dt,\qquad
+		c_0 = \frac{1}{2\pi}\int_{0}^{2\pi} y(t)\,dt.
+	\end{aligned}
+\end{align}
+
+\begin{align}
+	\begin{aligned}
+		a_n & = \frac{1}{\pi}\int_{0}^{2\pi} x(t)\cos(n t)\,dt, &
+		b_n & = \frac{1}{\pi}\int_{0}^{2\pi} x(t)\sin(n t)\,dt,   \\
+		c_n & = \frac{1}{\pi}\int_{0}^{2\pi} y(t)\cos(n t)\,dt, &
+		d_n & = \frac{1}{\pi}\int_{0}^{2\pi} y(t)\sin(n t)\,dt.
+	\end{aligned}
+\end{align}
+
+Our EFDs are N sets of $a_n, b_n, c_n, d_n$.
+$a_0$ and $c_0$ encode the position of the edge (it is their centroid).
+
+\section{EFA as a complete description of shape}
+A note on EFD - a complete description of shape.
+\begin{itemize}
+	\item Normally people would just chuck things into PCA and hope for the best
+	\item It will find the best linear* combinations that describe the dataset*
+	\item This is fine
+	\item There also seems to be a belief that PCA magically finds the right thing, and that you
+	      might as well chuck your image pixels into PCA to find interesting features. This isn't true.
+	\item We can come up with better (possibly non-linear, see the bumpiness metric below) features
+	      that 1. actually describe the biologically interesting features in the dataset and
+	      2. might never be picked up by pca (e.g. because they are non-linear, or because they don't describe
+	      much global variation but do describe a lot of the difference between our classes).
+	\item EFA is not a list of features derived from our shape - it is a *complete description of it* (down to some length scale)
+	\item This means that ANY (reasonable) feature can be calculated from the EFA coefficients - it might be hard to work out how to do this, but it should be possible
+	\item We show feature selection using EFDs here as an illustration - you could of course get e.g. size
+	      by just counting pixels
+\end{itemize}
 \section{Mathematical notes on the bumpiness metric}
 
 \end{document}
