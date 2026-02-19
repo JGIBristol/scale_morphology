@@ -25,7 +25,9 @@ from matplotlib.patches import Patch, Ellipse
 from matplotlib.colors import TABLEAU_COLORS, CSS4_COLORS
 from sklearn.feature_selection import f_classif
 from sklearn.preprocessing import StandardScaler
+from sklearn.pipeline import Pipeline
 from sklearn.discriminant_analysis import LinearDiscriminantAnalysis
+from sklearn.model_selection import StratifiedKFold, cross_val_score
 from statsmodels.multivariate.manova import MANOVA
 from pingouin import pairwise_gameshowell
 
@@ -213,7 +215,10 @@ def _debug_plots(
             axis.set_yticks([])
 
         fig.tight_layout()
-        fig.savefig((ellipse_dir / pathlib.Path(path).name).with_suffix(".png"))
+        fig.savefig(
+            (ellipse_dir / pathlib.Path(path).name).with_suffix(".png"),
+            bbox_inches="tight",
+        )
         plt.close(fig)
 
     # - plots comparing the segmentation mask size/elliptical fit size/area from EFA and aspect ratio from ellipse + EFA
@@ -228,7 +233,9 @@ def _debug_plots(
     for ax in axes:
         x0, x1 = ax.get_xlim()
         y0, y1 = ax.get_ylim()
-        ax.plot([x0, x1], [y0, y1], "k--")
+        start = min(x0, y0)
+        end = max(x1, y1)
+        ax.plot([start, start], [end, end], "k--")
         ax.set_xlim([x0, x1])
         ax.set_ylim([y0, y1])
     fig.tight_layout()
@@ -300,30 +307,79 @@ def _lda(
     labels = grouping_df.astype(str).agg(" | ".join, axis=1)
 
     # Scale features + run LDA
-    X = StandardScaler().fit_transform(metrics.to_numpy())
+    X = metrics.to_numpy()
     y = labels.to_numpy()
 
-    lda = LinearDiscriminantAnalysis()
-    lda_coeffs = lda.fit_transform(X, y)
+    lda_pipeline = Pipeline(
+        [
+            ("scaler", StandardScaler()),
+            ("lda", LinearDiscriminantAnalysis()),
+        ]
+    )
 
     lda_dir = output_dir / "lda"
     lda_dir.mkdir()
 
+    # LDA score with cross val
+    cv = StratifiedKFold(n_splits=5, shuffle=True, random_state=42)
+    accuracy = cross_val_score(lda_pipeline, X, y, cv=cv, scoring="accuracy")
+    balanced = cross_val_score(lda_pipeline, X, y, cv=cv, scoring="balanced_accuracy")
+    with open(lda_dir / "lda_crossval_score.txt", "w") as f:
+        f.write(
+            f"LDA 5-fold CV subset accuracy:\n\t{accuracy.mean():.3f} +- {accuracy.std():.3f}\n"
+        )
+        f.write(
+            f"LDA 5-fold CV balanced accuracy (0 is random, 1 is perfect):\n\t{balanced.mean():.3f} +- {balanced.std():.3f}\n"
+        )
+
+    # Now fit it on the whole data
+    lda_pipeline.fit(X, y)
+    scaler = lda_pipeline.named_steps["scaler"]
+    lda = lda_pipeline.named_steps["lda"]
+    X_scaled = scaler.transform(X)
+    X_lda = lda.transform(X_scaled)
+    n_components = X_lda.shape[1]
+
     # LDA projection pairplot
     fig = plotting.pair_plot(
-        metrics.to_numpy(),
+        X_lda,
         grouping_df,
         _get_colours(grouping_df)[: grouping_df.drop_duplicates().shape[0]],
         axis_label="LDA Axis",
         normalise=True,
     )
     fig.suptitle("LDA Projections")
-    fig.savefig(lda_dir / "lda_scatter.png")
+    fig.savefig(lda_dir / "lda_scatter.png", bbox_inches="tight")
     plt.close(fig)
 
+    feature_names = metrics.columns.tolist()
+    n_components = X_lda.shape[1]
+
     # Coeffs bar chart
+    fig, axes = plt.subplots(1, n_components, figsize=(8, 4))
+    x = np.arange(len(feature_names))
+    width = 0.8 / n_components
+    for i, axis in enumerate(axes):
+        axis.bar(
+            x,
+            lda.scalings_[:, i],
+            width=width,
+        )
+        axis.set_title(f"LD{i+1}")
+        axis.set_xticks(x)
+        axis.set_xticklabels(feature_names)
+        axis.axhline(0, color="black", linewidth=0.8)
+    fig.suptitle("LDA feature loadings")
+    fig.savefig(lda_dir / "lda_loadings.png", dpi=150, bbox_inches="tight")
+    plt.close(fig)
+
     # Explained variance ratio
-    # LDA score
+    fig, ax = plt.subplots(figsize=(5, 4))
+    ax.bar([f"LD{i+1}" for i in range(n_components)], lda.explained_variance_ratio_)
+    ax.set_ylabel("Explained variance ratio")
+    ax.set_title("LDA explained variance")
+    fig.savefig(output_dir / "lda_explained_variance.png", dpi=150, bbox_inches="tight")
+    plt.close(fig)
 
 
 def main(
@@ -347,6 +403,10 @@ def main(
     the area/ellipse area/ellipse aspect ratio and also showing the
     Fourier power spectrum.
     """
+    if output_dir.is_dir():
+        raise FileExistsError(
+            f"Output directory already exists; move or delete it: {output_dir}"
+        )
     scale_paths = list(str(p) for p in segmentation_dir.glob("*.tif"))
 
     # Get the metadata

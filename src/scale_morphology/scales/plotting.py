@@ -176,8 +176,8 @@ def pair_plot(
 
     # Init a figure
     # Make it bigger if it would be small
-    figsize = (2 * n_dim, 2 * n_dim) if n_dim > 3 else (9, 9)
-    fig, axes = plt.subplots(n_dim, n_dim, figsize=figsize)
+    figsize = (3 * n_dim, 3 * n_dim) if n_dim > 3 else (12, 12)
+    fig, axes = plt.subplots(n_dim, n_dim, figsize=figsize, constrained_layout=True)
     if n_dim == 1:
         axes = np.array([[axes]])
 
@@ -208,15 +208,18 @@ def pair_plot(
 
     # Add a legend
     fig.legend(
-        handles=[
-            Patch(
-                facecolor=colour_lookup[idx],
-                edgecolor="k",
-                linewidth=0.5,
-                label=" | ".join([str(u) for u in unique]),
-            )
-            for idx, unique in zip(np.unique(labels), uniques, strict=True)
-        ],
+        handles=sorted(
+            [
+                Patch(
+                    facecolor=colour_lookup[idx],
+                    edgecolor="k",
+                    linewidth=0.5,
+                    label=" | ".join([str(u) for u in unique]),
+                )
+                for idx, unique in zip(np.unique(labels), uniques, strict=True)
+            ],
+            key=lambda p: p.get_label(),
+        ),
         loc="center right",
         bbox_to_anchor=(1.02, 0.5),
         title="Group",
