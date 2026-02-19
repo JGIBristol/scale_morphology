@@ -151,50 +151,105 @@ An illustration is in Figure.~\ref{efa_illustration}
 The maths of EFA is briefly covered in Appendix~\ref{efa_maths}.
 
 \section{Feature Extraction}
+We want to use our EFDs to meaningfully describe the shapes of our scales.
+Normally people would just run PCA on them, but this isn't ideal for a few reasons (see Appendix.~\ref{efa_shape_description}).
+Instead, we will derive some meaningful metrics from the EFDs and use these to describe our shapes:
 \begin{itemize}
-	\item Features chosen:
-	      \begin{itemize}
-		      \item Size
-		      \item Aspect Ratio
-		      \item Bumpiness
-		            \begin{itemize}
-			            \item Why take the log? Because it makes it look right. Not taking the log squishes everything up to small values like 0.0001 vs 0.000001,
-			                  the absolute difference between which isn't that descriptive - but the log-difference is.
-			            \item Mathematical explanation: we take the log because we expect the Fourier power to decrease as (at least) some power law:
-			                  \begin{itemize}
-				                  \item the scale has finite area/perimiter/is bounded - this tells us that x is square-integrable, i.e. $\int_0^{2\pi}x(t)^2dt$.
-				                  \item By Parseval's theorem, this means that $\sum_n^\infty(a_n^2 + b_n^2)$ (since the a, b coeffs came from the x points). Same for the $b, c$ coeffs from $y$.
-				                  \item i.e. total harmonic power must converge - $\sum_{n=1}^\infty \left(a_n^2 + b_n^2 + c_n^2 + d_n^2 \right) < \infty$
-				                  \item This tells us that the higher harmonics have to $\rightarrow 0$ as $n\rightarrow \infty$.
-				                  \item How fast they decay is determined by smoothness - if the shape is continuous (but not differentiable, i.e. it has sharp corners) then
-				                        our coefficients will decay as $1/n$.
-				                  \item Further constraints (like having smooth, non-sharp corners or being analytic) will mean the coeffs decay even faster.
-				                  \item For scales, we can at least say that the Fourier power per harmonic decays at least like $1/n^2$ (but probably faster).
-				                  \item The bumpiness (fraction of power in higher harmonics) is:
-				                        \begin{equation}
-					                        \frac{\sum_n^{nmax} a_n^2}{\sum_1^{nmax} a_n^2}
-				                        \end{equation}
-				                  \item Taking the log of this, we get
-				                        \begin{equation}
-					                        log\left(\sum_n^{nmax} a_n^2\right) - log\left(\sum_1^{nmax} a_n^2\right)
-				                        \end{equation}
-				                  \item Since we expect these to decay as power-laws, we have turned our power-law variation into linear
-				                        variation and turned multiplicative variation into additive variation (more intuitive)
-				                  \item This is too much detail for the paper it's just interesting from an EFA perspective
-			                  \end{itemize}
-		            \end{itemize}
-	      \end{itemize}
-	\item[]
-	\item Why not just use PCA - global variation instead of class separability, only linear, not biologically informed
+	\item Size
+	\item Aspect Ratio
+	\item Bumpiness
 \end{itemize}
+
+\subsection{Size}
+This is an obvious metric that describes the overall bulk of the scale.
+We'd expect this to tell us something about the bones, probably.
+There are a few obvious ways to calculate a size to associate with our scale:
+\begin{enumerate}
+	\item Literally counting the pixels in the image
+	\item The area enclosed by the EFA curve
+	\item The area enclosed by the first EFA harmonic
+\end{enumerate}
+The first option is the literal size of the scale.
+The second will give us the same value as the first, as long as we use enough EFDs.
+The third will give a slightly different result, but might better represent the overall "bulk" of the
+scale better - it is the area but without accounting for any smaller features than can be described by the first harmonic.
+
+It turns out that these measures are all basically the same thing (see Figure.~\ref{area_ar_metrics}), so I've decided
+to go with the ellipse area (option 3). This is because it's easy to calculate from EFDs and gives us a measure
+of the size of the scale, without accounting for any protrustions from it (which would increase the scale's literal area
+but don't make it any ``bulkier'').
+
+We can calculate the area of the first harmonic ellipse described by our EFDs as:
+\begin{equation}
+	A = \pi\sqrt{\left(a_1^2 + b_1^2\right)\left(c_1^2 + d_1^2 \right)}
+\end{equation}
+There is also a formula for the area of the closed curve described by EFDs, but I don't use it here.
+
+\begin{figure}
+	\centering
+	\includegraphics[width=0.9\textwidth]{imgs/efa_size_ar_comparison.png}
+	\caption{
+		Some plots I made while deciding how to calculate size/aspect ratio.
+		Left: actual size vs size from EFDs (blue) and size of first harmonic vs size from EFDs. They're all pretty much identical.
+		Right: aspect ratio from EFDs vs aspect ratio of an ellipse fit to the scale. They also match up pretty well.
+	}
+	\label{area_ar_metrics}
+\end{figure}
+
+\subsection{Aspect Ratio}
+Similarly, we can calculate the aspect ratio of our scale from the EFDs.
+We do this by building a matrix of our first-harmonic EFDs, $$M_1 = \begin{bmatrix} a_1 & b_1 \\ c_1 & d_1 \end{bmatrix}$$.
+We then perform Singular Value Decomposition on this matrix to find the length of the semimajor/minor axes.
+With SVD $M_1 = U \Sigma V^\top$, where $\Sigma = \text{diag}(\sigma_1, \sigma_2)$ and $\sigma_1 \geq \sigma_2 \geq 0$, the aspect ratio is:
+$$\text{aspect ratio} = \frac{\sigma_1}{\sigma_2}$$
+
+This looks slightly complicated, but it is a really standard result in linear algebra and is easy to compute.
+In Fig.~\ref{area_ar_metrics} (right), we can see that this value is closely correlated with the aspect ratio we would
+get by just fitting an ellipse to the image (as in Fig.~\ref{efa_illustration}, left).
+
+\subsection{Bumpiness}
+This is the most complicated metric, but can also be calculated directly from the EFDs.
+
+We define ``bumpiness'' as the contribution from small features to our scale's shape.
+To do this, we need to measure/choose two things: what ``contribution'' means, and what ``small features'' are.
+We can get both of these things from our EFDs.
+
+I will define ``small features'' first. We note that the approximate angular size of features
+described by the $N^\mathrm{th}$ harmonic is $\frac{pi}{N}$ - i.e. higher harmonics describe smaller features.
+This means we just need to choose a cutoff harmonic above which we will consider contributions to be ``bumps'' - in this
+case, I have chosen a value of 5 (based on Chrissy eyeballing some scales). We also decided that 25 harmonics is enough
+to describe the full shape of the scales.
+
+To define the strength of contribution we will use the Fourier power - this is the approximate contribution from
+a harmonic to the overall shape, and is given by the sum in quadrature of the EFDs.
+
+Putting these together, we find our bumpiness metric is:
+\begin{equation}
+	\mathrm{bumpiness} = \mathrm{log}\left(\frac{\sum_{N=5}^{25}a_N^2 + b_N^2 + c_N^2 + d_N^2}{\sum_{N=1}^5 a_N^2 + b_N^2 + c_N^2 + d_N^2}\right)
+\end{equation}
+This, again, is a metric that can be calculated from the EFDs.
+You might have noticed that I snuck a ``log'' in there - the intuitive reason for this is because it makes the plot look better.
+The mathematical reason is in Appendix~\ref{bumpiness_appendix}.
 
 \section{Statistical Tests + Interpreting Axes}
 \begin{itemize}
+	\item We did a standard scaling
 	\item LDA explanation + sklearn citation
 	\item LDA accuracy metrics
 	\item Stats tests explanations - not too much detail
 \end{itemize}
 
+As a sanity check, Figure.~\ref{bumpiness} shows some scales ordered by the bumpiness metric.
+\begin{figure}
+	\centering
+	\includegraphics[width=\textwidth]{imgs/bumpiness.png}
+	\caption{
+		Some scale segmentations, ordered by the bumpiness metric.
+		Scales with a higher value of ``bumpiness'' also appear less smooth visually,
+		which is what we were trying to capture with this metric.
+	}
+	\label{bumpiness}
+\end{figure}
 
 \appendix
 \section{Calculating EFDs}
@@ -231,6 +286,7 @@ Our EFDs are N sets of $a_n, b_n, c_n, d_n$.
 $a_0$ and $c_0$ encode the position of the edge (it is their centroid).
 
 \section{EFA as a complete description of shape}
+\label{efa_shape_description}
 A note on EFD - a complete description of shape.
 \begin{itemize}
 	\item Normally people would just chuck things into PCA and hope for the best
@@ -238,6 +294,7 @@ A note on EFD - a complete description of shape.
 	\item This is fine
 	\item There also seems to be a belief that PCA magically finds the right thing, and that you
 	      might as well chuck your image pixels into PCA to find interesting features. This isn't true.
+	\item Why not just use PCA - global variation instead of class separability, only linear, not biologically informed
 	\item We can come up with better (possibly non-linear, see the bumpiness metric below) features
 	      that 1. actually describe the biologically interesting features in the dataset and
 	      2. might never be picked up by pca (e.g. because they are non-linear, or because they don't describe
@@ -247,6 +304,34 @@ A note on EFD - a complete description of shape.
 	\item We show feature selection using EFDs here as an illustration - you could of course get e.g. size
 	      by just counting pixels
 \end{itemize}
+
 \section{Mathematical notes on the bumpiness metric}
+\label{bumpiness_appendix}
+\begin{itemize}
+	\item Why take the log? Because it makes it look right. Not taking the log squishes everything up to small values like 0.0001 vs 0.000001,
+	      the absolute difference between which isn't that descriptive - but the log-difference is.
+	\item Mathematical explanation: we take the log because we expect the Fourier power to decrease as (at least) some power law:
+	      \begin{itemize}
+		      \item the scale has finite area/perimiter/is bounded - this tells us that x is square-integrable, i.e. $\int_0^{2\pi}x(t)^2dt$.
+		      \item By Parseval's theorem, this means that $\sum_n^\infty(a_n^2 + b_n^2)$ (since the a, b coeffs came from the x points). Same for the $b, c$ coeffs from $y$.
+		      \item i.e. total harmonic power must converge - $\sum_{n=1}^\infty \left(a_n^2 + b_n^2 + c_n^2 + d_n^2 \right) < \infty$
+		      \item This tells us that the higher harmonics have to $\rightarrow 0$ as $n\rightarrow \infty$.
+		      \item How fast they decay is determined by smoothness - if the shape is continuous (but not differentiable, i.e. it has sharp corners) then
+		            our coefficients will decay as $1/n$.
+		      \item Further constraints (like having smooth, non-sharp corners or being analytic) will mean the coeffs decay even faster.
+		      \item For scales, we can at least say that the Fourier power per harmonic decays at least like $1/n^2$ (but probably faster).
+		      \item The bumpiness (fraction of power in higher harmonics) is:
+		            \begin{equation}
+			            \frac{\sum_n^{nmax} a_n^2}{\sum_1^{nmax} a_n^2}
+		            \end{equation}
+		      \item Taking the log of this, we get
+		            \begin{equation}
+			            log\left(\sum_n^{nmax} a_n^2\right) - log\left(\sum_1^{nmax} a_n^2\right)
+		            \end{equation}
+		      \item Since we expect these to decay as power-laws, we have turned our power-law variation into linear
+		            variation and turned multiplicative variation into additive variation (more intuitive)
+		      \item This is too much detail for the paper it's just interesting from an EFA perspective
+	      \end{itemize}
+\end{itemize}
 
 \end{document}
