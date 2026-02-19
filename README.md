@@ -212,6 +212,8 @@ Other normalisations include rotating each harmonic to have a relative phase of
 </details>
 
 ## Other bits
+A more technical explanation, suitable for a writeup, can be found
+in [./paper/manuscript.tex](./paper/manuscript.tex)
 <details>
 <summary>New to uv?</summary>
 uv is a python package manager that makes setup easy -
