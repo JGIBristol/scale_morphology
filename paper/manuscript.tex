@@ -351,8 +351,13 @@ are probably less used to thinking in conjugate spaces like the frequency domain
 
 The example in Appendix~\ref{pca_feature_selection} of throwing x/y co-ords into PCA to see what happens isn't absurd when you consider this
 - it is almost a standard practice to do the same thing with EFDs, so why not with pixel locations?
-I think the answer to both is that neither are sensible, and instead finding biologically inspired features and deciding how best to express them,
-either in terms of real-space pixel co-ordinates or a conjugate space like EFDs, is the best way to select features for shape analysis.
+I think the answer to this is that EFDs are fundamentally different from pixel locations, since pixel locations are all
+equally important but an EFD series can be truncated and still keep most of the important information.
+This difference might mean that PCA is a more natural algorithm to use on EFDs than on real-space coordinates, but
+that might not be true.
+Either way, finding biologically inspired features and deciding how best to express them,
+either in terms of real-space pixel co-ordinates or a conjugate space like EFDs,
+is probably the best way to select features for shape analysis.
 
 \section{Mathematical notes on the bumpiness metric}
 \label{bumpiness_appendix}
