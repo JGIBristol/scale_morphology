@@ -1,3 +1,8 @@
+% This document probably won't compile if you're running it yourself from
+% the git repo, since the images aren't committed and are just in my home
+% directory. This is fine though - this document is just meant to be a
+% skeleton for a write up. I'll send the relevant images via email to the
+% right people...
 \documentclass[11pt,a4paper,notitlepage]{article}
 
 \usepackage[utf8]{inputenc}
@@ -7,59 +12,373 @@
 \usepackage{hyperref}
 \usepackage{natbib}
 
-\author{Richard Lane, Rabia Sevil, Chrissy Hammond}
+\author{Richard Lane, Carran Johal, Rabia Sevil, Chrissy Hammond}
 \title{
-    paper title
+	Scale Shape Methods
 }
 
 \begin{document}
 \maketitle
 
-% To make the building work while I don't have any references
-\cite{example2023}
+The code for this analysis is in the github.com/JGIBristol/scale\_morphology repository.
 
-\section{Methods}
-\subsection{Materials}
+\section{Materials}
 \begin{itemize}
 	\item Stuff that happened in the lab
 	\item Which fish we used
 	\item How many we ended up with
+	\item Imaging, staining etc.
 	\item Flowchart of fishes
+	\item I used the 878 scales in Carran/Postgrad/ALP\_WT\_flattened/
 \end{itemize}
 
-\subsection{Elliptic Fourier Analysis}
-\subsubsection{Segmentation}
+\section{Segmentation}
+Here's a scale, and the associated segmentation mask:
+\begin{figure}[h!]
+	\centering
+	\begin{minipage}{0.4\textwidth}
+		\includegraphics[width=\textwidth]{imgs/scale.png}
+	\end{minipage}
+	\begin{minipage}{0.4\textwidth}
+		\includegraphics[width=\textwidth]{imgs/clean_segmentation.png}
+	\end{minipage}
+	\caption{A scale and the associated segmentation mask.
+		Original filename: 10M\_(4.0x)\_Osx\_mcherry\_GFP\_D10Reg\_Fish2\_D10reg\_scale010\_\_OSX\_mcherry
+		\_GFP\_2021\_10\_months\_AL 10M\_(4.0x)\_Osx\_mcherry\_GFP\_D10Reg\_Fish2\_D10reg\_scale010\_\_
+		OSX\_mcherry\_GFP\_2021\_10\_months\_ALP.}
+\end{figure}
+
+We segmented the scales out by first using an AI model, and then manually cleaning the resulting masks.
+
+\subsection{Automated Segmentation}
+We used the Segment Anything Model (SAM 2) [https://arxiv.org/abs/2408.00714] to segment the scale.
+This model is promptable, which means we give it both the image to segment and some additional information
+such as points or bounding boxes which are then used to inform the segmentation. This is useful for us - there's
+often a bubble/hair/loose bit of dye in the image that the SAM model picks up. We can reduce the amount this happens
+by prompting the model.
+
+The scales in our dataset were all stained with ALP which gives them good contrast.
+We developed a method to find a prompt for these scales - first we roughly segment the scale out, then we use this
+rough segmentation to find the prompt.
+The procedure for the rough segmentation is:
+\begin{enumerate}
+	\item Preprocess the scale by enhancing contrast and blurring
+	\item Attempt to segment the scale out by mean thresholding (skimage.threshold\_mean)
+	\item Remove any objects in this segmentation mask that are touching the border of the image
+	\item Remove small objects via binary opening
+	\item Fill holes
+	\item Take the largest connected component in the mask
+\end{enumerate}
+This gives us an approximate segmentation mask for the scale. It isn't good enough to use for the analysis
+(we often miss parts around the edge of the scale, especially when there's high contrast between the
+exposed/embedded parts of the scale), but it is good enough to find our prompt.
+
+We then use this rough segmentation to find the prompt. The prompt for the ALP scale segmentation has two components:
+a set of points and a bounding box.
+The set of points is found by randomly selecting points from the interior of the mask - we do this by running 100 binary erosions
+on the mask, and then randomly choosing some points. The binary erosions ensure that we don't sample points on the very edge of the
+mask, which are less likely to be correct.
+The bounding box is found by simply finding the bounding box of the rough segmentation.
+
+An example of the ALP scale prompt can be seen in Fig.~\ref{alp_prompt}:
+\begin{figure}[h!]
+	\centering
+	\includegraphics[width=0.6\textwidth]{imgs/prompt.png}
+	\caption{The prompt fed into the SAM model.
+		The bounding box and points help the model to segment the correct objet out of the image -
+		note that there are bubbles around the scale that we do not want to pick up.\\
+		Original filename:
+		10M\_(4.0x)\_Osx\_mcherry\_D10reg\_Fish1\_D10reg\_scale003
+		\_\_OSX\_mcherry\_GFP\_2021\_10\_months\_ALP.tif
+	}
+	\label{alp_prompt}
+\end{figure}
+
+We also tried to segment scales from confocal images. This is less tested, and we haven't used it for the rest of the analyis,
+but the prompt here is simply that we take five points in the centre of the image (like the 5 on a die) and prompt
+the model that these must be in the object. This is because we assume the scale is in the middle of the image.
+The contrast is lower for the confocal images, so we can't do the same ALP prompt procedure as above.
+
+The script for running the automated segmentation is at scripts/1-automatic\_segmentation.py in the git repo.
+
+The resulting segmentations are in Carran/Postgrad/ALP\_WT\_flattened\_segmentations/.
+
+\subsection{Cleaning Segmentations}
+Sometimes the SAM model will pick up things that aren't the scale, or only segment out
+parts of the scale. This happened around 10\% of the time for our data. To deal with this,
+we wrote a script using napari[10.5281/zenodo.3555620]/python to create a GUI for cleaning the scale.
+This can be seen in Fig.~\ref{napari}.
+\begin{figure}[!htb]
+	\centering
+	\includegraphics[width=0.8\textwidth]{imgs/napari_cleaning_gui.png}
+	\caption{The segmentation cleaning GUI.}
+	\label{napari}
+\end{figure}
+
+Cleaned segmentations are in Carran/Postgrad/flattened\_segmentations\_cleaned/.
+
+\section{Elliptic Fourier Descriptors}
+Now that we have segmented our scales, we can analyse their shape.
+Since our scales are nice, simple shapes (they don't contain holes or any pathologies
+like fractal edges or anything weird) we can fully describe their shape with a single
+closed curve representing their boundaries. We will do this using Elliptic Fourier Analysis (EFA),
+to express the shapes in terms of Elliptic Fourier Descriptors (EFDs).
+
+The procedure for EFA is as follows:
 \begin{itemize}
-	\item Pipeline, maybe with a flowchart
-	\item Classical steps
-	\item SAM steps
-	\item Manual cleaning
+	\item Remove any spurious bits, fill holes - even the clean segmentations sometimes have issues like stray pixels
+	\item Find equally spaced points around the edge of the segmentation using shapely [10.5281/zenodo.5597138].
+	\item Re-order points such that we have a consistent ordering. (Otherwise two rotated but otherwise identical shapes will have different EFD descriptors.)
+	      In my case, I reorder such that the first point is closest to the centre of mass of the object.
+	\item Fit to these with pyefd [https://github.com/hbldh/pyefd] to find EFDs
 \end{itemize}
+The EFDs we extract are $4N$ floating-point numbers for N harmonics.
+An illustration is in Figure.~\ref{efa_illustration}
 
-\subsubsection{Elliptic Fourier Decomposition}
+\begin{figure}[!htb]
+	\centering
+	\includegraphics[width=0.9\textwidth]{imgs/efa_illustration.png}
+	\caption{An illustration of the EFA procedure.
+		Left: the segmentation with an elliptical fit to its edge in green. This is the first harmonic of the EFA expansion.
+		Middle: the full EFA expansion up to 25 harmonics.
+		Right: the EFA expansion up to 5 harmonics. Note that smaller features are not reproduced.
+		Original image 12M\_(4.0x)\_LC3\_GFP\_Osx\_mcherry\_D10Reg\_Fish1\_female\_D10reg\_scale002\_\_2021
+		\_LC3\_GFP\_OSX\_Mcherry\_1year\_ALP
+	}
+	\label{efa_illustration}
+\end{figure}
+
+The maths of EFA is briefly covered in Appendix~\ref{efa_maths}.
+
+\section{Feature Extraction}
+We want to use our EFDs to meaningfully describe the shapes of our scales.
+Normally people would just run PCA on them, but this isn't ideal for a few reasons (see Appendix.~\ref{efa_shape_description}).
+Instead, we will derive some meaningful metrics from the EFDs and use these to describe our shapes:
 \begin{itemize}
-	\item Maths
-	\item Citation for code
-	\item Maybe a diagram showing the pipeline
-	\item How did I choose how many points to use - power spectrum? Haussdorf distance? area using shoelace formula?
-    \item How did I choose how many harmonics to use - Hausdorff distance?
-    \item Mention that EFA is useful because it regularises! There might be rough edges, EFA smoothes these sensibly...
+	\item Size
+	\item Aspect Ratio
+	\item Bumpiness
 \end{itemize}
 
-\subsubsection{Dimensionality Reduction + Interpreting Axes}
+\subsection{Size}
+This is an obvious metric that describes the overall bulk of the scale.
+We'd expect this to tell us something about the bones, probably.
+There are a few obvious ways to calculate a size to associate with our scale:
+\begin{enumerate}
+	\item Literally counting the pixels in the image
+	\item The area enclosed by the EFA curve
+	\item The area enclosed by the first EFA harmonic
+\end{enumerate}
+The first option is the literal size of the scale.
+The second will give us the same value as the first, as long as we use enough EFDs.
+The third will give a slightly different result, but might better represent the overall "bulk" of the
+scale better - it is the area but without accounting for any smaller features than can be described by the first harmonic.
+
+It turns out that these measures are all basically the same thing (see Figure.~\ref{area_ar_metrics}), so I've decided
+to go with the ellipse area (option 3). This is because it's easy to calculate from EFDs and gives us a measure
+of the size of the scale, without accounting for any protrustions from it (which would increase the scale's literal area
+but don't make it any ``bulkier'').
+
+We can calculate the area of the first harmonic ellipse described by our EFDs as:
+\begin{equation}
+	A = \pi\sqrt{\left(a_1^2 + b_1^2\right)\left(c_1^2 + d_1^2 \right)}
+\end{equation}
+There is also a formula for the area of the closed curve described by EFDs, but I don't use it here.
+
+\begin{figure}
+	\centering
+	\includegraphics[width=0.9\textwidth]{imgs/efa_size_ar_comparison.png}
+	\caption{
+		Some plots I made while deciding how to calculate size/aspect ratio.
+		Left: actual size vs size from EFDs (blue) and size of first harmonic vs size from EFDs. They're all pretty much identical.
+		Right: aspect ratio from EFDs vs aspect ratio of an ellipse fit to the scale. They also match up pretty well.
+	}
+	\label{area_ar_metrics}
+\end{figure}
+
+\subsection{Aspect Ratio}
+Similarly, we can calculate the aspect ratio of our scale from the EFDs.
+We do this by building a matrix of our first-harmonic EFDs, $$M_1 = \begin{bmatrix} a_1 & b_1 \\ c_1 & d_1 \end{bmatrix}$$.
+We then perform Singular Value Decomposition on this matrix to find the length of the semimajor/minor axes.
+With SVD $M_1 = U \Sigma V^\top$, where $\Sigma = \text{diag}(\sigma_1, \sigma_2)$ and $\sigma_1 \geq \sigma_2 \geq 0$, the aspect ratio is:
+$$\text{aspect ratio} = \frac{\sigma_1}{\sigma_2}$$
+
+This looks slightly complicated, but it is a really standard result in linear algebra and is easy to compute.
+In Fig.~\ref{area_ar_metrics} (right), we can see that this value is closely correlated with the aspect ratio we would
+get by just fitting an ellipse to the image (as in Fig.~\ref{efa_illustration}, left).
+
+\subsection{Bumpiness}
+This is the most complicated metric, but can also be calculated directly from the EFDs.
+
+We define ``bumpiness'' as the contribution from small features to our scale's shape.
+To do this, we need to measure/choose two things: what ``contribution'' means, and what ``small features'' are.
+We can get both of these things from our EFDs.
+
+I will define ``small features'' first. We note that the approximate angular size of features
+described by the $N^\mathrm{th}$ harmonic is $\frac{pi}{N}$ - i.e. higher harmonics describe smaller features.
+This means we just need to choose a cutoff harmonic above which we will consider contributions to be ``bumps'' - in this
+case, I have chosen a value of 5 (based on Chrissy eyeballing some scales). We also decided that 25 harmonics is enough
+to describe the full shape of the scales.
+
+To define the strength of contribution we will use the Fourier power - this is the approximate contribution from
+a harmonic to the overall shape, and is given by the sum in quadrature of the EFDs.
+
+Putting these together, we find our bumpiness metric is:
+\begin{equation}
+	\mathrm{bumpiness} = \mathrm{log}\left(\frac{\sum_{N=5}^{25}a_N^2 + b_N^2 + c_N^2 + d_N^2}{\sum_{N=1}^5 a_N^2 + b_N^2 + c_N^2 + d_N^2}\right)
+\end{equation}
+This, again, is a metric that can be calculated from the EFDs.
+You might have noticed that I snuck a ``log'' in there - the intuitive reason for this is because it makes the plot look better.
+The mathematical reason is in Appendix~\ref{bumpiness_appendix}.
+
+
+As a sanity check, Figure.~\ref{bumpiness} shows some scales ordered by the bumpiness metric.
+\begin{figure}
+	\centering
+	\includegraphics[width=\textwidth]{imgs/bumpiness.png}
+	\caption{
+		Some scale segmentations, ordered by the bumpiness metric.
+		Scales with a higher value of ``bumpiness'' also appear less smooth visually,
+		which is what we were trying to capture with this metric.
+	}
+	\label{bumpiness}
+\end{figure}
+
+\section{Statistical Tests + Interpreting Axes}
+The scatter plots of these features are probably the most informative output.
+
+However, I have also run some additional analyses to see if we can get any extra insights.
+
+\subsection{Statistical Tests}
+The first of these are some simple statistical tests - these were just to get some numbers, in case
+we wanted to put them somewhere (e.g. a paper abstract). There are a few different things going on here;
+the analysis script outputs the results of the stats tests, p-values, etc. I will leave it as an exercise
+for the reader to find out precisely what is going on, and if any of them are of interest, but the three types of test
+here are:
+\begin{enumerate}
+	\item F-test: can we separate out at least one of our classes from the others?
+	\item Games-Howell pairwise test: can we separate our classes out from each other individually?
+	\item MANOVA test: how do the (means of the) classes vary in the joint space?
+\end{enumerate}
+Number 1 is a relatively relaxed test - if all but one classes are indistiguishable, we will still get a low p-value for this test.
+Number 2 is pairwise - for lots of classes, there will be lots of results. You have to be a bit careful here - if we have 20 pairs of
+classes, we would expect one p-value $<0.05$ just by random chance.
+Number 3 is perhaps the most meaningful test - it tells us about the joint feature space (the other tests look at the features independently).
+I think the "Roy's greatest root" is the most important thing here, but I'm not really sure what this stats stuff means.
+Perhaps best to just leave it. It's there just in case.
+
+\subsection{Linear Discriminant Analysis}
+A better way to separate our classes using our features is with Linear Discriminant Analysis (LDA).
+This finds linear combinations of our features that best separate the classes. We first scale our features
+to standard form (0 mean, 1 standard deviation), and then run LDA on them.
+
+We output a plot of the classes in LDA feature space, as well as some bar plots telling us the relative importance
+of the LDA feature and the original features' (size, aspect ratio, bumpiness) contribution to the LDA axes.
+Perhaps the most interesting thing here is the accuracy - using k-fold validation (with k=5), I ran the LDA on
+folds of the data to get an idea of how seperable our classes are. This is in the lda\_crossval\_score.txt file that our script outputs.
+This tells us both the subset accuracy (how often we match up our points to the right classes) and balanced accuracy (similar, but takes
+different sample sizes in our different classes into account).
+
+
+\appendix
+\section{Calculating EFDs}
+\label{efa_maths}
+Given a set of points on our edge ${x, y}$ we parameterise our shape with EFDs as follows:
+
+\begin{align}
+	\begin{aligned}
+		x(t) & = a_0 + \sum_{n=1}^{N} \big[a_n \cos(n t) + b_n \sin(n t)\big], \\
+		y(t) & = c_0 + \sum_{n=1}^{N} \big[c_n \cos(n t) + d_n \sin(n t)\big],
+		\qquad t \in [0, 2\pi].
+	\end{aligned}
+\end{align}
+
+with:
+
+\begin{align}
+	\begin{aligned}
+		a_0 = \frac{1}{2\pi}\int_{0}^{2\pi} x(t)\,dt,\qquad
+		c_0 = \frac{1}{2\pi}\int_{0}^{2\pi} y(t)\,dt.
+	\end{aligned}
+\end{align}
+
+\begin{align}
+	\begin{aligned}
+		a_n & = \frac{1}{\pi}\int_{0}^{2\pi} x(t)\cos(n t)\,dt, &
+		b_n & = \frac{1}{\pi}\int_{0}^{2\pi} x(t)\sin(n t)\,dt,   \\
+		c_n & = \frac{1}{\pi}\int_{0}^{2\pi} y(t)\cos(n t)\,dt, &
+		d_n & = \frac{1}{\pi}\int_{0}^{2\pi} y(t)\sin(n t)\,dt.
+	\end{aligned}
+\end{align}
+
+Our EFDs are N sets of $a_n, b_n, c_n, d_n$.
+$a_0$ and $c_0$ encode the position of the edge (it is their centroid).
+
+\section{PCA for feature selection}
+\label{pca_feature_selection}
+Normally people would just chuck things into PCA and hope for the best - especially in
+morphometrics (I remember seeing a guide recommend you just throw your x/y-coords into PCA
+to see if anything interesting comes up) - but PCA does something slightly different than what
+we might want. PCA finds the best linear combinations of variables that describe the variance
+within the dataset - there is no reason to believe that these combinations will correspond to
+descriptive features, or that they will distinguish between our classes.
+PCA features are also, by definition, always linear combinations - we cannot express things like
+our bumpiness ratio or size as linear combinations of EFDs, so PCA would never discover them.
+Finally, PCA axes are not biologically informed - any separation they do find might be spurious
+(you'd have to do stats to find out if they are), and there's no reason a priori to expect the
+directions PCA discovers to mean anything physical.
+Above, we have come up with better features that 1. actually describe the biologically interesting features in the dataset and
+2. might never be picked up by pca (e.g. because they are non-linear, or because they don't describe
+much global variation but do describe a lot of the difference between our classes).
+
+\section{EFA as a complete description of shape}
+\label{efa_shape_description}
+A note on EFD - a complete description of shape.
+EFA is not a list of features derived from our shape - it is a \emph{complete description of it} (down to some length scale).
+This means that ANY (reasonable) feature can be calculated from the EFA coefficients - it might be hard to work out how to do this, but it should be possible;
+for example, our bumpiness and aspect ratios are simple examples of real things that you could derive from the image, but because
+EFA gives us a fully descriptive conjugate space, we can work these things out with EFDs too. Other examples include things like area,
+centre of gravity, moment of inertia...
+
+Here, we show feature selection using only the EFDs.
+You could, of course, just as well get e.g. size by just counting the pixels in the image.
+Some features will be easier to calculate in EFD space and others in pixel space - but I think it is worth emphasising that
+they \emph{contain the same information}. Lots of works consider EFDs to be features of the image, but really they are just another way
+of representing it.
+
+This has some interesting consequences, which is perhaps more intuitive to physicists/engineers than biologists/palaeontologists who
+are probably less used to thinking in conjugate spaces like the frequency domain.
+
+The example in Appendix~\ref{pca_feature_selection} of throwing x/y co-ords into PCA to see what happens isn't absurd when you consider this
+- it is almost a standard practice to do the same thing with EFDs, so why not with pixel locations?
+I think the answer to this is that EFDs are fundamentally different from pixel locations, since pixel locations are all
+equally important but an EFD series can be truncated and still keep most of the important information.
+This difference might mean that PCA is a more natural algorithm to use on EFDs than on real-space coordinates, but
+that might not be true.
+Either way, finding biologically inspired features and deciding how best to express them,
+either in terms of real-space pixel co-ordinates or a conjugate space like EFDs,
+is probably the best way to select features for shape analysis.
+
+\section{Mathematical notes on the bumpiness metric}
+\label{bumpiness_appendix}
+The bumpiness metric is based on the idea that smaller features are described by higher harmonics, and our bumps are small features.
+Why take the log in our formula? Because it makes the scatter plots look right. Not taking the log squishes everything up to small values like 0.0001 vs 0.000001,
+the absolute difference between which isn't that descriptive - but the log-difference is.
+
+There is also a mathematical explanation: we take the log because we expect the Fourier power to decrease as (at least) some power law.
+The logic is as follows:
 \begin{itemize}
-	\item PCA explanation
-	\item LDA explanation
-	\item sklearn citation
-    \item[]
-    \item Looking at the extreme ones
-	\item Eigenshape analysis
-	\item Direct axis interpretability - by plotting "pure" axes
+	\item the scale has finite area/perimiter/is bounded - this tells us that x is square-integrable, i.e. $\int_0^{2\pi}x(t)^2dt$.
+	\item By Parseval's theorem, this means that $\sum_n^\infty(a_n^2 + b_n^2)$ (since the a, b coeffs came from the x points). Same for the $b, c$ coeffs from $y$.
+	\item i.e. total harmonic power must converge - $\sum_{n=1}^\infty \left(a_n^2 + b_n^2 + c_n^2 + d_n^2 \right) < \infty$
+	\item This tells us that the higher harmonics have to $\rightarrow 0$ as $n\rightarrow \infty$.
+	\item How fast they decay is determined by smoothness - if the shape is continuous (but not differentiable, i.e. it has sharp corners) then
+	      our coefficients will decay as $1/n$.
+	\item Further constraints (like having smooth, non-sharp corners or being analytic) will mean the coeffs decay even faster.
+	\item For scales, we can at least say that the Fourier power per harmonic decays at least like $1/n^2$ (but probably faster).
+	\item By taking the log, we have turned our power-law variation into linear
+	      variation and turned multiplicative variation into additive variation (more intuitive)
+	\item This is too much detail for the paper it's just interesting from an EFA perspective (to me)...
 \end{itemize}
-
-\section{Results}
-
-\bibliographystyle{unsrt}
-\bibliography{references}
 
 \end{document}
