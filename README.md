@@ -120,45 +120,31 @@ analysis.
 </details>
 
 <details>
-<summary>Step 3: run a quick analysis</summary>
+<summary>Step 3: Analysis with manual feature selection</summary>
 
 ### Quick Analysis: Size & Aspect Ratio
 We care about the shape of our scales; a simple way to quantify these
-is by taking some simple features (size and aspect ratio) and plotting
+is by taking some simple features (size, aspect ratio and bumpiness) and plotting
 them on a scatter plot.
 
 To do this, starting from a directory of cleaned segmentations:
 ```
-uv run scripts/3-quick_ellipse_analysis.py my_clean_seg_dir/ sex
+uv run scripts/3-quick_ellipse_analysis.py my_clean_seg_dir/ --output-dir my_output_dir/ sex age growth --query "(sex != '?') & (age > 12) &  & (growth in [10, inf])"
 ```
+This will select only M/F scales, over 12 months old, which are either ontogenetic (`growth == inf`) or 10 day regenerating.
+See the docs for more details on the arguments.
+
+The script also runs LDA to find how well we can separate the scales based on these features.
+
+The name of the script is perhaps a bit misleading - this is because this script used to just fit one ellipse to the scale.
+It now does more than that, but I haven't changed the name so that it isn't confusing for the other people running this script.
 
 #### Metadata (sex, age, etc.)
 When making these plots, we need to somehow find the sex/age/onto-regen status/... of the fish.
 We do this by looking at the filename - the scales (usually)
-follow a naming convention that allows us to extract the
+follow a naming convention that allows us to extract this.
 
-If you only want to run on a subset of the data (e.g plot a scatter
-plot of age showing only female fish), you'll have to change the
-source code to just pick out the right scales for you.
-It isn't a difficult change, but it still does require changing the 
-code.
-
-</details>
-
-<details>
-<summary>Step 4: run the EFA analysis</summary>
-
-This is where the code gets a bit more **"exploratory"**.
-
-The idea here is that, once we have segmented the scales out, we can use a Elliptic Fourier Analysis (EFA)
-to fully describe their shape and then use PCA/LDA to tell us, in an interpretable way, which features
-of the scale vary most with some metadata like sex/age/etc.
-
-The [script](./scripts/4-elliptic_fourier_analysis.py) runs through this pipeline and makes some plots.
-The mechanics of the EFA parameterisation happens in the [library code](./src/scale_morphology/scales/efa.py);
-I have spent some time making sure that the parameterisation is independent of the scale's location/rotation/starting point
-of the contour, and that all the coefficients (bar the first) are independent of the scale's size. This, however, does
-mean that the coefficients are in a slightly non-standard form.
+If you scan new scales, they'll have to be named consistently...
 
 #### EFA Parameterisation
 We can parameterise an ellipse with four coefficients (intuitively this would be the centroid and minor/major axes lengths).
@@ -198,7 +184,25 @@ This means that we can describe our shape with a vector like:
 $$(a_1, b_1, c_1, d_1, a_2, b_2, ...)$$
 once we have removed the centroid $(a_0, c_0)$.
 
-However, a few of these parameters are redundant - once we normalise for rotation the $b_1$ and $c_1$ parameters are always 0. We also want to normalise
+</details>
+
+<details>
+<summary>Step 4: now-redundant EFA analysis</summary>
+
+This is where the code gets a bit more **"exploratory"** - the above script in step 3 will probably be enough
+for the analysis.
+
+The idea here is that, once we have segmented the scales out, we can use a Elliptic Fourier Analysis (EFA)
+to fully describe their shape and then use PCA/LDA to tell us, in an interpretable way, which features
+of the scale vary most with some metadata like sex/age/etc.
+
+The [script](./scripts/4-elliptic_fourier_analysis.py) runs through this pipeline and makes some plots.
+The mechanics of the EFA parameterisation happens in the [library code](./src/scale_morphology/scales/efa.py);
+I have spent some time making sure that the parameterisation is independent of the scale's location/rotation/starting point
+of the contour, and that all the coefficients (bar the first) are independent of the scale's size. This, however, does
+mean that the coefficients are in a slightly non-standard form.
+
+However, a few of the EFA parameters above are redundant - once we normalise for rotation the $b_1$ and $c_1$ parameters are always 0. We also want to normalise
 the coefficients but keep size information, so we will divide all the coefficients by $a_1$ and then replace the first coeff (which is always 1, since it's $a_0 / a_0$) with the size of the scale.
 
 This gives us our final EFA parameterisation convention:
